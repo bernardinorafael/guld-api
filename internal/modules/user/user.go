@@ -1,0 +1,205 @@
+package user
+
+import (
+	"errors"
+	"fmt"
+	"time"
+
+	"github.com/bernardinorafael/internal/_shared/util"
+)
+
+const (
+	minNameLength = 3
+)
+
+var (
+	// Name validation errors
+	ErrInvalidFullNameLength = fmt.Errorf("full name must be at least %d characters long", minNameLength)
+	ErrInvalidFullName       = errors.New("incorrect name, must contain valid first and last name")
+	ErrEmptyFullName         = errors.New("full name is a required field")
+
+	// Username validation errors
+	ErrEmptyUsername = errors.New("username is a required field")
+
+	// ID validation errors
+	ErrInvalidID = errors.New("invalid ksuid format")
+)
+
+type User struct {
+	id           string
+	fullName     string
+	username     string
+	phoneNumber  string
+	emailAddress string
+	avatarURL    *string
+	banned       bool
+	locked       bool
+	created      time.Time
+	updated      time.Time
+}
+
+// NewFromEntity creates a new user entity from an existing one
+func NewFromEntity(u Entity) (*User, error) {
+	user := User{
+		id:           u.ID,
+		fullName:     u.FullName,
+		username:     u.Username,
+		phoneNumber:  u.PhoneNumber,
+		emailAddress: u.EmailAddress,
+		avatarURL:    u.AvatarURL,
+		banned:       u.Banned,
+		locked:       u.Locked,
+		created:      u.Created,
+		updated:      u.Updated,
+	}
+
+	if err := user.validate(); err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+// NewUser creates a new user entity from scratch
+func NewUser(name, username, phone, email string) (*User, error) {
+	user := User{
+		id:           util.GenID("user"),
+		fullName:     name,
+		username:     username,
+		phoneNumber:  phone,
+		emailAddress: email,
+		avatarURL:    nil,
+		banned:       false,
+		locked:       false,
+		created:      time.Now(),
+		updated:      time.Now(),
+	}
+
+	if err := user.validate(); err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+func (u *User) validate() error {
+	if u.fullName == "" {
+		return ErrEmptyFullName
+	}
+
+	if len(u.fullName) < minNameLength {
+		return ErrInvalidFullNameLength
+	}
+
+	if len(u.username) == 0 {
+		return ErrEmptyUsername
+	}
+
+	return nil
+}
+
+func (u *User) ToggleLock() error {
+	if u.locked {
+		return u.Unlock()
+	}
+	return u.Lock()
+}
+
+func (u *User) Lock() error {
+	if u.locked {
+		return fmt.Errorf("user is already locked")
+	}
+
+	u.locked = true
+	u.updated = time.Now()
+
+	return nil
+}
+
+func (u *User) Unlock() error {
+	if !u.locked {
+		return fmt.Errorf("user is already unlocked")
+	}
+
+	u.locked = false
+	u.updated = time.Now()
+
+	return nil
+}
+
+func (u *User) ChangeEmail(email string) error {
+	if err := u.validate(); err != nil {
+		return err
+	}
+
+	u.emailAddress = email
+	u.updated = time.Now()
+
+	return nil
+}
+
+func (u *User) ChangePhone(phone string) error {
+	if err := u.validate(); err != nil {
+		return err
+	}
+
+	u.phoneNumber = phone
+	u.updated = time.Now()
+	return nil
+}
+
+func (u *User) ChangeName(name string) error {
+	if err := u.validate(); err != nil {
+		return err
+	}
+
+	u.updated = time.Now()
+	return nil
+}
+
+func (u *User) ChangeUsername(username string) error {
+	if err := u.validate(); err != nil {
+		return err
+	}
+
+	u.updated = time.Now()
+	return nil
+}
+
+// Store stores the user entity in the database
+func (u *User) Store() Entity {
+	return Entity{
+		ID:           u.ID(),
+		FullName:     u.FullName(),
+		Username:     u.Username(),
+		AvatarURL:    u.AvatarURL(),
+		PhoneNumber:  u.Phone(),
+		EmailAddress: u.Email(),
+		Banned:       u.Banned(),
+		Locked:       u.Locked(),
+		Created:      u.Created(),
+		Updated:      u.Updated(),
+	}
+}
+
+func (u *User) ID() string         { return u.id }
+func (u *User) FullName() string   { return u.fullName }
+func (u *User) Username() string   { return u.username }
+func (u *User) Email() string      { return u.emailAddress }
+func (u *User) AvatarURL() *string { return u.avatarURL }
+func (u *User) Phone() string      { return u.phoneNumber }
+func (u *User) Banned() bool       { return u.banned }
+func (u *User) Locked() bool       { return u.locked }
+func (u *User) Created() time.Time { return u.created }
+func (u *User) Updated() time.Time { return u.updated }
+
+// func isValidEmail(email string) bool {
+// 	re := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
+// 	return re.MatchString(email)
+// }
+
+// func isValidPhone(phone string) bool {
+// 	// Regex simples para validação de telefone (ajuste conforme necessário)
+// 	re := regexp.MustCompile(`^\+?[1-9]\d{1,14}$`)
+// 	return re.MatchString(phone)
+// }

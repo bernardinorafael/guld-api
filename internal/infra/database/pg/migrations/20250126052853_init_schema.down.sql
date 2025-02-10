@@ -1,0 +1,7 @@
+DROP TABLE IF EXISTS "phones";
+
+DROP TABLE IF EXISTS "email";
+
+DROP TABLE IF EXISTS "users";
+
+DROP TABLE IF EXISTS "accounts";
