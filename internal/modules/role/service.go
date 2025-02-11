@@ -34,9 +34,9 @@ func (s svc) MakeRolePermissions(ctx context.Context, roleId string, permissions
 	return nil
 }
 
-func (s svc) GetByID(ctx context.Context, teamId string, roleId string) (*Entity, error) {
+func (s svc) FindByID(ctx context.Context, teamId string, roleId string) (*Entity, error) {
 	// TODO: Find and validate team by teamId
-	role, err := s.repo.GetByID(ctx, teamId, roleId)
+	role, err := s.repo.FindByID(ctx, teamId, roleId)
 	if err != nil {
 		msg := "failed to retrieve role"
 		s.log.Errorf(ctx, msg, "error", err.Error(), "role_id", roleId)

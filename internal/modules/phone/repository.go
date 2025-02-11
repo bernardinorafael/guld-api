@@ -70,7 +70,7 @@ func (r repo) GetAllByUser(ctx context.Context, userId string) ([]AdditionalPhon
 	return phones, nil
 }
 
-func (r repo) GetByID(ctx context.Context, phoneId string) (*AdditionalPhone, error) {
+func (r repo) FindByID(ctx context.Context, phoneId string) (*AdditionalPhone, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
@@ -119,7 +119,7 @@ func (r repo) Update(ctx context.Context, phone PhoneUpdateParams) error {
 	return nil
 }
 
-func (r *repo) GetByPhone(ctx context.Context, phone string) (*AdditionalPhone, error) {
+func (r *repo) FindByPhone(ctx context.Context, phone string) (*AdditionalPhone, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 

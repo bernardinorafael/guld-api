@@ -76,7 +76,7 @@ func (c controller) createRolePermission(w http.ResponseWriter, r *http.Request)
 }
 
 func (c controller) getRole(w http.ResponseWriter, r *http.Request) {
-	role, err := c.svc.GetByID(
+	role, err := c.svc.FindByID(
 		c.ctx,
 		chi.URLParam(r, "teamId"),
 		chi.URLParam(r, "roleId"),

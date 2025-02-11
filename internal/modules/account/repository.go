@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/bernardinorafael/internal/_shared/util"
+	"github.com/bernardinorafael/internal/modules/org"
 	"github.com/bernardinorafael/internal/modules/user"
 	"github.com/bernardinorafael/pkg/transaction"
 	"github.com/jmoiron/sqlx"
@@ -20,7 +21,7 @@ func NewRepository(db *sqlx.DB) RepositoryInterface {
 	return &repo{db}
 }
 
-func (r repo) GetByUsername(ctx context.Context, username string) (*Entity, error) {
+func (r repo) FindByUsername(ctx context.Context, username string) (*Entity, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
@@ -45,7 +46,7 @@ func (r repo) GetByUsername(ctx context.Context, username string) (*Entity, erro
 	return &acc, nil
 }
 
-func (r repo) GetByUserID(ctx context.Context, userId string) (*Entity, error) {
+func (r repo) FindByUserID(ctx context.Context, userId string) (*Entity, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
@@ -66,12 +67,13 @@ func (r repo) GetByUserID(ctx context.Context, userId string) (*Entity, error) {
 	return &acc, nil
 }
 
-func (r repo) GetByID(ctx context.Context, accountId string) (*EntityWithUser, error) {
+func (r repo) FindByID(ctx context.Context, accountId string) (*EntityWithUser, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
 	var acc Entity
 	var user user.Entity
+	var organization org.Entity
 
 	err := transaction.ExecTx(ctx, r.db, func(tx *sqlx.Tx) error {
 		err := tx.GetContext(
@@ -95,6 +97,19 @@ func (r repo) GetByID(ctx context.Context, accountId string) (*EntityWithUser, e
 			return err
 		}
 
+		err = tx.GetContext(
+			ctx,
+			&organization,
+			`SELECT * FROM organizations WHERE owner_id = $1`,
+			acc.UserID,
+		)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return err
+			}
+			return err
+		}
+
 		return nil
 	})
 	if err != nil {
@@ -104,6 +119,7 @@ func (r repo) GetByID(ctx context.Context, accountId string) (*EntityWithUser, e
 	return &EntityWithUser{
 		ID:       acc.ID,
 		Password: acc.Password,
+		Org:      organization,
 		Created:  acc.Created,
 		Updated:  acc.Updated,
 		User:     user,

@@ -8,9 +8,9 @@ import (
 
 type RepositoryInterface interface {
 	Insert(ctx context.Context, acc EntityWithUser) error
-	GetByID(ctx context.Context, accountId string) (*EntityWithUser, error)
-	GetByUserID(ctx context.Context, userId string) (*Entity, error)
-	GetByUsername(ctx context.Context, username string) (*Entity, error)
+	FindByID(ctx context.Context, accountId string) (*EntityWithUser, error)
+	FindByUserID(ctx context.Context, userId string) (*Entity, error)
+	FindByUsername(ctx context.Context, username string) (*Entity, error)
 }
 
 type ServiceInterface interface {

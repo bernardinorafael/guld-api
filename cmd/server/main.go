@@ -12,6 +12,7 @@ import (
 	"github.com/bernardinorafael/internal/infra/http/middleware"
 	"github.com/bernardinorafael/internal/modules/account"
 	"github.com/bernardinorafael/internal/modules/email"
+	"github.com/bernardinorafael/internal/modules/org"
 	"github.com/bernardinorafael/internal/modules/permission"
 	"github.com/bernardinorafael/internal/modules/phone"
 	"github.com/bernardinorafael/internal/modules/role"
@@ -62,6 +63,7 @@ func main() {
 	permRepo := permission.NewRepository(db.GetDB())
 	teamRepo := team.NewRepository(db.GetDB())
 	accRepo := account.NewRepository(db.GetDB())
+	orgRepo := org.NewRepo(db.GetDB())
 
 	// Services
 	accService := account.NewService(ctx, log, accRepo, env.JWTSecret)
@@ -69,6 +71,7 @@ func main() {
 	roleService := role.NewService(log, roleRepo)
 	teamService := team.NewService(log, teamRepo)
 	userService := usersvc.New(log, userRepo, emailRepo, phoneRepo)
+	orgService := org.NewService(log, orgRepo)
 
 	// Controllers
 	permission.NewController(ctx, log, permService, env.JWTSecret).RegisterRoute(r)
@@ -76,6 +79,7 @@ func main() {
 	user.NewController(ctx, log, userService, env.JWTSecret).RegisterRoute(r)
 	role.NewController(ctx, log, roleService, env.JWTSecret).RegisterRoute(r)
 	account.NewController(ctx, log, accService, env.JWTSecret).RegisterRoute(r)
+	org.NewController(ctx, log, orgService, env.JWTSecret).RegisterRoute(r)
 
 	log.Info(ctx, "Server started")
 	err = http.ListenAndServe(":"+env.Port, r)

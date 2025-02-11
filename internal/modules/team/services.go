@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/bernardinorafael/internal/_shared/domain/valueobj"
+	"github.com/bernardinorafael/internal/_shared/util"
 	"github.com/bernardinorafael/pkg/logger"
 )
 
@@ -24,17 +24,12 @@ func NewService(log logger.Logger, repo RepositoryInterface) ServiceInterface {
 
 func (s svc) Create(ctx context.Context, params CreateTeamParams) error {
 	// TODO: Check if user exists by `ownerId`
-	slug, err := valueobj.NewSlug(params.Name)
-	if err != nil {
-		msg := "failed to generate slug"
-		s.log.Errorf(ctx, msg, "error", err.Error(), "name", params.Name)
-		return errors.New(msg)
-	}
+	slug := util.Slugify(params.Name)
 
-	_, err = s.repo.Create(ctx, Entity{
+	_, err := s.repo.Create(ctx, Entity{
 		Name:    params.Name,
-		Slug:    string(slug.Slug()),
 		OwnerID: params.OwnerID,
+		Slug:    slug,
 	})
 	if err != nil {
 		msg := "failed to create team"

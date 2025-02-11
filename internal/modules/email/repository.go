@@ -33,7 +33,7 @@ func (r *repo) GetPrimary(ctx context.Context, userId string) (*AdditionalEmail,
 	return &addr, nil
 }
 
-func (r *repo) GetByEmail(ctx context.Context, email string) (*AdditionalEmail, error) {
+func (r *repo) FindByEmail(ctx context.Context, email string) (*AdditionalEmail, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
@@ -101,7 +101,7 @@ func (r repo) GetAllByUser(ctx context.Context, userId string) ([]AdditionalEmai
 	return emails, nil
 }
 
-func (r repo) GetByID(ctx context.Context, emailId string) (*AdditionalEmail, error) {
+func (r repo) FindByID(ctx context.Context, emailId string) (*AdditionalEmail, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 

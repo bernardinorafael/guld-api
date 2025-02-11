@@ -8,11 +8,11 @@ import (
 	"github.com/bernardinorafael/pkg/logger"
 )
 
-func (s svc) GetByID(ctx context.Context, id string) (*user.CompleteEntity, error) {
+func (s svc) FindByID(ctx context.Context, id string) (*user.CompleteEntity, error) {
 	s.log.Info(ctx, "Process Started")
 	defer s.log.Info(ctx, "Process Finished")
 
-	found, err := s.userRepo.GetByID(ctx, id)
+	found, err := s.userRepo.FindByID(ctx, id)
 	if err != nil {
 		msg := "failed to retrieve user"
 		s.log.Errorw(ctx, msg, logger.Err(err))

@@ -1,0 +1,11 @@
+CREATE TABLE
+	IF NOT EXISTS "organizations" (
+		"id" VARCHAR(255) PRIMARY KEY NOT NULL,
+		"name" VARCHAR(255) NOT NULL,
+		"slug" VARCHAR(255) UNIQUE NOT NULL,
+		"owner_id" VARCHAR(255) NOT NULL,
+		"avatar_url" VARCHAR(255) NULL,
+		"created" TIMESTAMPTZ NOT NULL DEFAULT NOW (),
+		"updated" TIMESTAMPTZ NOT NULL DEFAULT NOW (),
+		CONSTRAINT "owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "users" ("id") ON DELETE CASCADE
+	);

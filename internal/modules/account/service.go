@@ -55,7 +55,7 @@ func (s svc) GetSignedInAccount(ctx context.Context) (*EntityWithUser, error) {
 		)
 	}
 
-	acc, err := s.repo.GetByID(ctx, userId)
+	acc, err := s.repo.FindByID(ctx, userId)
 	if err != nil {
 		s.log.Errorw(ctx, "error on get signed in account", logger.Err(err))
 		return nil, NewConflictError("error on get signed in account", InvalidCredentials, err, nil)
@@ -68,7 +68,7 @@ func (s svc) Login(ctx context.Context, username string, password string) (strin
 	s.log.Info(ctx, "Process Started")
 	defer s.log.Info(ctx, "Process Finished")
 
-	acc, err := s.repo.GetByUsername(ctx, username)
+	acc, err := s.repo.FindByUsername(ctx, username)
 	if err != nil {
 		s.log.Errorw(ctx, "error on get account by username", logger.Err(err))
 		return "", nil, NewConflictError("check username and/or password", InvalidCredentials, err, nil)
@@ -91,6 +91,20 @@ func (s svc) Login(ctx context.Context, username string, password string) (strin
 		s.log.Errorw(ctx, msg, logger.Err(err))
 		return "", nil, NewBadRequestError(msg, nil)
 	}
+
+	// err = util.
+	// 	NewEmailClient("re_Bcc5tfNo_JfhsF7wJBR8dHfR6tsKrpbHj").
+	// 	SendEmail(
+	// 		util.EmailBody{
+	// 			To:      "rafaelferreirab2@gmail.com",
+	// 			Subject: "Hello",
+	// 			Body:    "account created",
+	// 		},
+	// 	)
+	// if err != nil {
+	// 	s.log.Errorw(ctx, "error on send email", logger.Err(err))
+	// 	return "", nil, NewBadRequestError("error on send email", err)
+	// }
 
 	return t, claims, nil
 }

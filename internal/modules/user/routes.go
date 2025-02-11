@@ -96,7 +96,7 @@ func (c controller) create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c controller) getUser(w http.ResponseWriter, r *http.Request) {
-	res, err := c.svc.GetByID(c.ctx, chi.URLParam(r, "id"))
+	res, err := c.svc.FindByID(c.ctx, chi.URLParam(r, "id"))
 	if err != nil {
 		if err, ok := err.(ApplicationError); ok {
 			NewHttpError(w, err)

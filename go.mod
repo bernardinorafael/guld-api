@@ -7,15 +7,13 @@ require github.com/spf13/viper v1.19.0
 require github.com/lib/pq v1.10.9
 
 require (
-	github.com/rs/zerolog v1.33.0
+	github.com/resend/resend-go/v2 v2.15.0
 	github.com/segmentio/ksuid v1.0.4
 )
 
 require (
 	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da // indirect
 	github.com/aead/poly1305 v0.0.0-20180717145839-3fee0db0b635 // indirect
-	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/xo/terminfo v0.0.0-20210125001918-ca9a967f8778 // indirect
 )
 

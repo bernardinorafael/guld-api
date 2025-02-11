@@ -1,31 +1,20 @@
-package valueobj
+package util
 
 import (
-	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 )
 
-type Slug string
-
-type slug struct {
-	value string
-}
-
-func NewSlug(name string) (*slug, error) {
-	if len(name) == 0 {
-		return nil, errors.New("invalid entrypoint slug")
+func Slugify(val string) string {
+	if len(val) == 0 {
+		return ""
 	}
 
-	slug := slug{value: name}
-	return &slug, nil
-}
-
-func (s *slug) slugify() {
-	s.value = strings.ToLower(s.value)
+	val = strings.ToLower(val)
 
 	var sb strings.Builder
-	for _, char := range s.value {
+	for _, char := range val {
 		if char == ' ' {
 			sb.WriteRune(char)
 			continue
@@ -47,18 +36,27 @@ func (s *slug) slugify() {
 			sb.WriteRune(char)
 		}
 	}
-	s.value = sb.String()
+	val = sb.String()
 
 	r := regexp.MustCompile(`[^a-z0-9]+`)
-	s.value = r.ReplaceAllString(s.value, "-")
+	val = r.ReplaceAllString(val, "-")
 
 	r, _ = regexp.Compile("-+")
-	s.value = r.ReplaceAllString(s.value, "-")
+	val = r.ReplaceAllString(val, "-")
 
-	s.value = strings.Trim(s.value, "-")
+	val = strings.Trim(val, "-")
+
+	return val
 }
 
-func (s *slug) Slug() Slug {
-	s.slugify()
-	return Slug(s.value)
+func SlugifyWithPrefix(prefix, val string) string {
+	if len(val) == 0 {
+		return ""
+	}
+
+	return fmt.Sprintf("%s-%s", prefix, Slugify(val))
+}
+
+func IsSlug(val string) bool {
+	return regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`).MatchString(val)
 }

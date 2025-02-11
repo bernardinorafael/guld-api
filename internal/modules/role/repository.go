@@ -64,7 +64,7 @@ func (r *repo) BatchRolePermissions(ctx context.Context, roleId string, permissi
 	return nil
 }
 
-func (r *repo) GetByID(ctx context.Context, teamId string, roleId string) (*Entity, error) {
+func (r *repo) FindByID(ctx context.Context, teamId string, roleId string) (*Entity, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
