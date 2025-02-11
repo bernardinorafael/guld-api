@@ -1,8 +1,10 @@
 package account
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"html/template"
 	"time"
 
 	. "github.com/bernardinorafael/internal/_shared/errors"
@@ -92,19 +94,33 @@ func (s svc) Login(ctx context.Context, username string, password string) (strin
 		return "", nil, NewBadRequestError(msg, nil)
 	}
 
-	// err = util.
-	// 	NewEmailClient("re_Bcc5tfNo_JfhsF7wJBR8dHfR6tsKrpbHj").
-	// 	SendEmail(
-	// 		util.EmailBody{
-	// 			To:      "rafaelferreirab2@gmail.com",
-	// 			Subject: "Hello",
-	// 			Body:    "account created",
-	// 		},
-	// 	)
-	// if err != nil {
-	// 	s.log.Errorw(ctx, "error on send email", logger.Err(err))
-	// 	return "", nil, NewBadRequestError("error on send email", err)
-	// }
+	templ, err := template.ParseFiles("internal/email-templates/index.html")
+	if err != nil {
+		s.log.Errorw(ctx, "error on parse template", logger.Err(err))
+		return "", nil, NewBadRequestError("error on parse template", err)
+	}
+
+	var tpl bytes.Buffer
+	err = templ.Execute(&tpl, struct{ Username string }{Username: acc.ID})
+	if err != nil {
+		s.log.Errorw(ctx, "error on execute template", logger.Err(err))
+		return "", nil, NewBadRequestError("error on execute template", err)
+	}
+
+	go func() {
+		err = util.
+			NewEmailClient("re_Bcc5tfNo_JfhsF7wJBR8dHfR6tsKrpbHj").
+			SendEmail(
+				util.EmailBody{
+					To:      "rafaelferreirab2@gmail.com",
+					Subject: "Hello",
+					Body:    tpl.String(),
+				},
+			)
+		if err != nil {
+			s.log.Errorw(ctx, "error on send email", logger.Err(err))
+		}
+	}()
 
 	return t, claims, nil
 }
