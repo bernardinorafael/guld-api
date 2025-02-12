@@ -1,16 +1,16 @@
 package account
 
 import (
-	"bytes"
 	"context"
 	"errors"
-	"html/template"
+	"fmt"
 	"time"
 
 	. "github.com/bernardinorafael/internal/_shared/errors"
 	"github.com/bernardinorafael/internal/_shared/util"
 	"github.com/bernardinorafael/internal/infra/http/middleware"
 	"github.com/bernardinorafael/internal/infra/token"
+	"github.com/bernardinorafael/internal/mailer"
 	"github.com/bernardinorafael/internal/modules/user"
 	"github.com/bernardinorafael/pkg/crypto"
 	"github.com/bernardinorafael/pkg/logger"
@@ -18,24 +18,61 @@ import (
 )
 
 type svc struct {
-	ctx  context.Context
-	log  logger.Logger
-	repo RepositoryInterface
-	t    *token.Token
+	ctx    context.Context
+	log    logger.Logger
+	repo   RepositoryInterface
+	t      *token.Token
+	mailer mailer.Mailer
 }
 
 func NewService(
 	ctx context.Context,
 	log logger.Logger,
 	repo RepositoryInterface,
+	mailer mailer.Mailer,
 	secretKey string,
 ) ServiceInterface {
 	return &svc{
-		ctx:  ctx,
-		log:  log,
-		repo: repo,
-		t:    token.New(ctx, log, secretKey),
+		ctx:    ctx,
+		log:    log,
+		repo:   repo,
+		mailer: mailer,
+		t:      token.New(ctx, log, secretKey),
 	}
+}
+
+func (s svc) ActivateAccount(ctx context.Context, userId string) error {
+	s.log.Info(ctx, "Process Started")
+	defer s.log.Info(ctx, "Process Finished")
+
+	account, err := s.repo.FindByUserID(ctx, userId)
+	if err != nil {
+		s.log.Errorw(ctx, "error on get account by id", logger.Err(err))
+		return NewConflictError("error on get account by id", InvalidCredentials, err, nil)
+	}
+
+	if account.IsActive {
+		s.log.Errorw(ctx, "this account is already activated", logger.Err(err))
+		return NewConflictError("error on activating account", ExpiredLink, nil, nil)
+	}
+
+	newAcc, err := NewAccountFromEntity(*account)
+	if err != nil {
+		s.log.Errorw(ctx, "error on create account from entity", logger.Err(err))
+	}
+	newAcc.Activate()
+
+	active := newAcc.IsActive()
+	err = s.repo.Update(ctx, PartialEntity{
+		ID:       account.ID,
+		IsActive: &active,
+	})
+	if err != nil {
+		s.log.Errorw(ctx, "error on update account", logger.Err(err))
+		return NewBadRequestError("error on update account", nil)
+	}
+
+	return nil
 }
 
 func (s svc) GetSignedInAccount(ctx context.Context) (*EntityWithUser, error) {
@@ -76,6 +113,11 @@ func (s svc) Login(ctx context.Context, username string, password string) (strin
 		return "", nil, NewConflictError("check username and/or password", InvalidCredentials, err, nil)
 	}
 
+	if !acc.IsActive {
+		s.log.Errorw(ctx, "account is not active", logger.Err(err))
+		return "", nil, NewConflictError("account is not active", DisabledAccount, err, nil)
+	}
+
 	if !crypto.PasswordMatches(password, acc.Password) {
 		s.log.Errorw(ctx, "password does not match", logger.Err(err))
 		return "", nil, NewConflictError("check username and/or password", InvalidCredentials, err, nil)
@@ -93,34 +135,6 @@ func (s svc) Login(ctx context.Context, username string, password string) (strin
 		s.log.Errorw(ctx, msg, logger.Err(err))
 		return "", nil, NewBadRequestError(msg, nil)
 	}
-
-	templ, err := template.ParseFiles("internal/email-templates/index.html")
-	if err != nil {
-		s.log.Errorw(ctx, "error on parse template", logger.Err(err))
-		return "", nil, NewBadRequestError("error on parse template", err)
-	}
-
-	var tpl bytes.Buffer
-	err = templ.Execute(&tpl, struct{ Username string }{Username: acc.ID})
-	if err != nil {
-		s.log.Errorw(ctx, "error on execute template", logger.Err(err))
-		return "", nil, NewBadRequestError("error on execute template", err)
-	}
-
-	go func() {
-		err = util.
-			NewEmailClient("re_Bcc5tfNo_JfhsF7wJBR8dHfR6tsKrpbHj").
-			SendEmail(
-				util.EmailBody{
-					To:      "rafaelferreirab2@gmail.com",
-					Subject: "Hello",
-					Body:    tpl.String(),
-				},
-			)
-		if err != nil {
-			s.log.Errorw(ctx, "error on send email", logger.Err(err))
-		}
-	}()
 
 	return t, claims, nil
 }
@@ -165,6 +179,21 @@ func (s svc) Register(ctx context.Context, dto CreateAccountParams) (string, *to
 		}
 		return "", nil, NewBadRequestError(msg, err)
 	}
+
+	go func() {
+		err := s.mailer.Send(mailer.SendParams{
+			From:    mailer.NotificationSender,
+			To:      "rafaelferreirab2@gmail.com",
+			Subject: "Activate your account",
+			File:    "activate_account.html",
+			Data: map[string]any{
+				"Link": fmt.Sprintf("http://localhost:3000/activate/%s", newAcc.UserID()),
+			},
+		})
+		if err != nil {
+			s.log.Errorw(ctx, "error on send email", logger.Err(err))
+		}
+	}()
 
 	t, claims, err := s.t.GenToken(
 		newAcc.ID(),

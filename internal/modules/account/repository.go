@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/bernardinorafael/internal/_shared/util"
@@ -50,6 +52,8 @@ func (r repo) FindByUserID(ctx context.Context, userId string) (*Entity, error) 
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
+	fmt.Println("userId", userId)
+
 	var acc Entity
 	err := r.db.GetContext(
 		ctx,
@@ -67,6 +71,31 @@ func (r repo) FindByUserID(ctx context.Context, userId string) (*Entity, error) 
 	return &acc, nil
 }
 
+func (r repo) Update(ctx context.Context, input PartialEntity) error {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	params := map[string]any{"id": input.ID}
+	clauses := []string{}
+
+	if input.IsActive != nil {
+		clauses = append(clauses, "is_active = :is_active")
+		params["is_active"] = input.IsActive
+	}
+
+	sql := fmt.Sprintf(
+		`UPDATE accounts SET %s, updated = now() WHERE id = :id`,
+		strings.Join(clauses, ", "),
+	)
+
+	_, err := r.db.NamedExecContext(ctx, sql, params)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (r repo) FindByID(ctx context.Context, accountId string) (*EntityWithUser, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
@@ -79,7 +108,7 @@ func (r repo) FindByID(ctx context.Context, accountId string) (*EntityWithUser, 
 		err := tx.GetContext(
 			ctx,
 			&acc,
-			`SELECT id, user_id, created, updated FROM accounts WHERE id = $1`,
+			`SELECT id, user_id, is_active, created, updated FROM accounts WHERE id = $1`,
 			accountId,
 		)
 		if err != nil {

@@ -7,17 +7,24 @@ import (
 	"github.com/bernardinorafael/internal/modules/user"
 )
 
+type PartialEntity struct {
+	ID       string `db:"id"`
+	IsActive *bool  `db:"is_active"`
+}
+
 type Entity struct {
 	ID       string    `json:"id" db:"id"`
 	UserID   string    `json:"user_id" db:"user_id"`
 	Password string    `json:"password,omitempty" db:"password"`
 	Created  time.Time `json:"created" db:"created"`
+	IsActive bool      `json:"is_active" db:"is_active"`
 	Updated  time.Time `json:"updated" db:"updated"`
 }
 
 type EntityWithUser struct {
 	ID       string      `json:"id" db:"id"`
 	Password string      `json:"password,omitempty" db:"password"`
+	IsActive bool        `json:"is_active" db:"is_active"`
 	User     user.Entity `json:"user" db:"user"`
 	Org      org.Entity  `json:"org" db:"org"`
 	Created  time.Time   `json:"created" db:"created"`

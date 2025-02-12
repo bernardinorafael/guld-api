@@ -10,6 +10,7 @@ import (
 	"github.com/bernardinorafael/internal/_shared/loggerconf"
 	"github.com/bernardinorafael/internal/infra/database/pg"
 	"github.com/bernardinorafael/internal/infra/http/middleware"
+	"github.com/bernardinorafael/internal/mailer"
 	"github.com/bernardinorafael/internal/modules/account"
 	"github.com/bernardinorafael/internal/modules/email"
 	"github.com/bernardinorafael/internal/modules/org"
@@ -55,6 +56,8 @@ func main() {
 	defer db.Close()
 	log.Info(ctx, "Database connected")
 
+	mailer := mailer.New(ctx, log, env.ResendAPIKey)
+
 	// Repositories
 	userRepo := userrepo.New(db.GetDB())
 	emailRepo := email.NewRepository(db.GetDB())
@@ -66,7 +69,7 @@ func main() {
 	orgRepo := org.NewRepo(db.GetDB())
 
 	// Services
-	accService := account.NewService(ctx, log, accRepo, env.JWTSecret)
+	accService := account.NewService(ctx, log, accRepo, mailer, env.JWTSecret)
 	permService := permission.NewService(log, permRepo)
 	roleService := role.NewService(log, roleRepo)
 	teamService := team.NewService(log, teamRepo)

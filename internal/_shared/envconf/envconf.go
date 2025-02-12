@@ -16,6 +16,8 @@ type Env struct {
 	DBName string `mapstructure:"DB_NAME"`
 	DBUrl  string `mapstructure:"DB_URL"`
 
+	ResendAPIKey string `mapstructure:"RESEND_API_KEY"`
+
 	JWTSecret           string        `mapstructure:"JWT_SECRET"`
 	JwtExpiresIn        int           `mapstructure:"JWT_EXPIRES"`
 	AccessTokenDuration time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`

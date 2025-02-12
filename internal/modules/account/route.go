@@ -33,12 +33,27 @@ func (c controller) RegisterRoute(r *chi.Mux) {
 	r.Route("/api/v1/auth", func(r chi.Router) {
 		r.Post("/register", c.register)
 		r.Post("/login", c.login)
+		r.Post("/activate/{userId}", c.activate)
 	})
 
 	r.Route("/api/v1/accounts/me", func(r chi.Router) {
 		r.Use(m.WithAuth)
 		r.Get("/", c.getSigned)
 	})
+}
+
+func (c controller) activate(w http.ResponseWriter, r *http.Request) {
+	err := c.svc.ActivateAccount(r.Context(), chi.URLParam(r, "userId"))
+	if err != nil {
+		if err, ok := err.(ApplicationError); ok {
+			NewHttpError(w, err)
+			return
+		}
+		NewHttpError(w, NewInternalServerError(err))
+		return
+	}
+
+	util.WriteSuccessResponse(w, http.StatusOK)
 }
 
 func (c controller) getSigned(w http.ResponseWriter, r *http.Request) {
@@ -89,7 +104,7 @@ func (c controller) login(w http.ResponseWriter, r *http.Request) {
 		ExpiresAt:   claims.RegisteredClaims.ExpiresAt.Unix(),
 	}
 
-	util.WriteJSONResponse(w, http.StatusOK, payload)
+	util.WriteJSONResponse(w, http.StatusAccepted, payload)
 }
 
 func (c controller) register(w http.ResponseWriter, r *http.Request) {
@@ -123,5 +138,5 @@ func (c controller) register(w http.ResponseWriter, r *http.Request) {
 		ExpiresAt:   claims.RegisteredClaims.ExpiresAt.Unix(),
 	}
 
-	util.WriteJSONResponse(w, http.StatusCreated, payload)
+	util.WriteJSONResponse(w, http.StatusAccepted, payload)
 }

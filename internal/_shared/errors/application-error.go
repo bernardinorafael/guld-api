@@ -23,6 +23,8 @@ const (
 	InvalidPassword         ErrorCode = "INVALID_PASSWORD"
 	ResourceAlreadyTaken    ErrorCode = "RESOURCE_ALREADY_TAKEN"
 	InvalidCredentials      ErrorCode = "INVALID_CREDENTIALS"
+	DisabledAccount         ErrorCode = "DISABLED_ACCOUNT"
+	ExpiredLink             ErrorCode = "EXPIRED_LINK"
 )
 
 type ApplicationError struct {

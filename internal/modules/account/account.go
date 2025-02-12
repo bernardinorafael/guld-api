@@ -21,6 +21,7 @@ type account struct {
 	id       string
 	userId   string
 	password string
+	isActive bool
 	created  time.Time
 	updated  time.Time
 }
@@ -32,6 +33,7 @@ func NewAccountFromEntity(acc Entity) (*account, error) {
 		userId:   acc.UserID,
 		password: acc.Password,
 		created:  acc.Created,
+		isActive: acc.IsActive,
 		updated:  acc.Updated,
 	}
 
@@ -48,6 +50,7 @@ func NewAccount(userId, password string) (*account, error) {
 		id:       util.GenID("acc"),
 		userId:   userId,
 		password: password,
+		isActive: false,
 		created:  time.Now(),
 		updated:  time.Now(),
 	}
@@ -76,6 +79,11 @@ func (a *account) validate() error {
 	}
 
 	return nil
+}
+
+func (a *account) Activate() {
+	a.isActive = true
+	a.updated = time.Now()
 }
 
 func (a *account) validatePassword() error {
@@ -139,6 +147,7 @@ func (a *account) Store() Entity {
 
 func (a *account) ID() string         { return a.id }
 func (a *account) UserID() string     { return a.userId }
+func (a *account) IsActive() bool     { return a.isActive }
 func (a *account) Password() string   { return a.password }
 func (a *account) Created() time.Time { return a.created }
 func (a *account) Updated() time.Time { return a.updated }
