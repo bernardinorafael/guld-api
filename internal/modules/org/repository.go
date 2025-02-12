@@ -31,7 +31,7 @@ func (r repo) FindByID(ctx context.Context, id string) (*EntityWithOwner, error)
 		err := tx.GetContext(ctx, &org, `SELECT * FROM organizations WHERE id = $1`, id)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				return fmt.Errorf("organization with id %s not found", id)
+				return nil
 			}
 			return err
 		}
@@ -72,7 +72,7 @@ func (r repo) FindBySlug(ctx context.Context, slug string) (*EntityWithOwner, er
 		err := tx.GetContext(ctx, &org, `SELECT * FROM organizations WHERE slug = $1`, slug)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				return fmt.Errorf("organization with slug %s not found", slug)
+				return nil
 			}
 			return err
 		}
@@ -80,7 +80,7 @@ func (r repo) FindBySlug(ctx context.Context, slug string) (*EntityWithOwner, er
 		err = tx.GetContext(ctx, &owner, `SELECT * FROM users WHERE id = $1`, org.OwnerID)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				return fmt.Errorf("user with id %s not found", org.OwnerID)
+				return nil
 			}
 			return err
 		}

@@ -23,29 +23,70 @@ func NewRepository(db *sqlx.DB) RepositoryInterface {
 	return &repo{db}
 }
 
-func (r repo) FindByUsername(ctx context.Context, username string) (*Entity, error) {
+func (r repo) FindByUsername(ctx context.Context, username string) (*EntityWithUser, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
+	fmt.Println("username", username)
+
 	var acc Entity
-	err := r.db.GetContext(
-		ctx,
-		&acc,
-		`
-		SELECT a.* FROM accounts a
-		INNER JOIN users u ON u.id = a.user_id
-		WHERE u.username = $1
+	var user user.Entity
+	var organization org.Entity
+
+	err := transaction.ExecTx(ctx, r.db, func(tx *sqlx.Tx) error {
+		err := tx.GetContext(
+			ctx,
+			&acc,
+			`
+			SELECT a.* FROM accounts a
+			INNER JOIN users u ON u.id = a.user_id
+			WHERE u.username = $1
 		`,
-		username,
-	)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, err
+			username,
+		)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return nil
+			}
+			return err
 		}
+
+		err = tx.GetContext(ctx, &user, `SELECT * FROM users WHERE id = $1`, acc.UserID)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return nil
+			}
+			return err
+		}
+
+		err = tx.GetContext(
+			ctx,
+			&organization,
+			`SELECT * FROM organizations WHERE owner_id = $1`,
+			acc.UserID,
+		)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return nil
+			}
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
 		return nil, err
 	}
 
-	return &acc, nil
+	return &EntityWithUser{
+		ID:       acc.ID,
+		Password: acc.Password,
+		Org:      &organization,
+		IsActive: acc.IsActive,
+		Created:  acc.Created,
+		Updated:  acc.Updated,
+		User:     user,
+	}, nil
 }
 
 func (r repo) FindByUserID(ctx context.Context, userId string) (*Entity, error) {
@@ -63,7 +104,7 @@ func (r repo) FindByUserID(ctx context.Context, userId string) (*Entity, error) 
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, err
+			return nil, nil
 		}
 		return nil, err
 	}
@@ -113,7 +154,7 @@ func (r repo) FindByID(ctx context.Context, accountId string) (*EntityWithUser, 
 		)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				return err
+				return nil
 			}
 			return err
 		}
@@ -121,7 +162,7 @@ func (r repo) FindByID(ctx context.Context, accountId string) (*EntityWithUser, 
 		err = tx.GetContext(ctx, &user, `SELECT * FROM users WHERE id = $1`, acc.UserID)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				return err
+				return nil
 			}
 			return err
 		}
@@ -134,7 +175,7 @@ func (r repo) FindByID(ctx context.Context, accountId string) (*EntityWithUser, 
 		)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				return err
+				return nil
 			}
 			return err
 		}
@@ -148,7 +189,8 @@ func (r repo) FindByID(ctx context.Context, accountId string) (*EntityWithUser, 
 	return &EntityWithUser{
 		ID:       acc.ID,
 		Password: acc.Password,
-		Org:      organization,
+		Org:      &organization,
+		IsActive: acc.IsActive,
 		Created:  acc.Created,
 		Updated:  acc.Updated,
 		User:     user,

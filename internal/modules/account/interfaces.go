@@ -10,7 +10,7 @@ type RepositoryInterface interface {
 	Insert(ctx context.Context, acc EntityWithUser) error
 	FindByID(ctx context.Context, accountId string) (*EntityWithUser, error)
 	FindByUserID(ctx context.Context, userId string) (*Entity, error)
-	FindByUsername(ctx context.Context, username string) (*Entity, error)
+	FindByUsername(ctx context.Context, username string) (*EntityWithUser, error)
 	Update(ctx context.Context, acc PartialEntity) error
 }
 

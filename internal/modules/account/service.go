@@ -17,6 +17,8 @@ import (
 	"github.com/lib/pq"
 )
 
+const temporaryTokenDuration = 60 * 24 * time.Minute
+
 type svc struct {
 	ctx    context.Context
 	log    logger.Logger
@@ -72,6 +74,8 @@ func (s svc) ActivateAccount(ctx context.Context, userId string) error {
 		return NewBadRequestError("error on update account", nil)
 	}
 
+	s.log.Infow(ctx, "account activated", logger.Any("account", account))
+
 	return nil
 }
 
@@ -81,24 +85,19 @@ func (s svc) GetSignedInAccount(ctx context.Context) (*EntityWithUser, error) {
 
 	userId, ok := ctx.Value(middleware.UserIDKey).(string)
 	if !ok {
-		s.log.Errorw(
-			ctx,
-			"user ID not found in context",
-			logger.Err(errors.New("user ID not found in context")),
-		)
-		return nil, NewConflictError(
-			"user ID not found in context",
-			InvalidCredentials,
-			errors.New("user ID not found in context"),
-			nil,
-		)
+		msg := "user ID not found in context"
+		s.log.Errorw(ctx, msg, logger.Err(errors.New(msg)))
+		return nil, NewConflictError(msg, InvalidCredentials, errors.New(msg), nil)
 	}
 
 	acc, err := s.repo.FindByID(ctx, userId)
 	if err != nil {
-		s.log.Errorw(ctx, "error on get signed in account", logger.Err(err))
-		return nil, NewConflictError("error on get signed in account", InvalidCredentials, err, nil)
+		msg := "error on get account"
+		s.log.Errorw(ctx, msg, logger.Err(err))
+		return nil, NewConflictError(msg, InvalidCredentials, err, nil)
 	}
+
+	util.PrintJSON(&acc)
 
 	return acc, nil
 }
@@ -123,12 +122,18 @@ func (s svc) Login(ctx context.Context, username string, password string) (strin
 		return "", nil, NewConflictError("check username and/or password", InvalidCredentials, err, nil)
 	}
 
+	util.PrintJSON(acc)
+
 	// TODO: Implement retrieve user from account
 	t, claims, err := s.t.GenToken(
-		acc.ID,
-		"-", // Email field from user
-		"-", // Username field from user
-		60*24*time.Minute,
+		token.WithParams{
+			AccountID: acc.ID,
+			UserID:    acc.User.ID,
+			Username:  acc.User.Username,
+			Email:     acc.User.EmailAddress,
+			OrgID:     &acc.Org.ID,
+			Duration:  temporaryTokenDuration,
+		},
 	)
 	if err != nil {
 		msg := "error on generate token"
@@ -196,10 +201,14 @@ func (s svc) Register(ctx context.Context, dto CreateAccountParams) (string, *to
 	}()
 
 	t, claims, err := s.t.GenToken(
-		newAcc.ID(),
-		newUser.Email(),
-		newUser.Username(),
-		60*24*time.Minute,
+		token.WithParams{
+			AccountID: newAcc.ID(),
+			UserID:    newUser.ID(),
+			Email:     newUser.Email(),
+			Username:  newUser.Username(),
+			OrgID:     nil,
+			Duration:  temporaryTokenDuration,
+		},
 	)
 	if err != nil {
 		msg := "error on generate token"

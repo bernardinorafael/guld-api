@@ -8,24 +8,37 @@ import (
 	"github.com/segmentio/ksuid"
 )
 
+type WithParams struct {
+	AccountID string
+	UserID    string
+	OrgID     *string
+	Username  string
+	Email     string
+	Duration  time.Duration
+}
+
 type AccountClaims struct {
-	AccountID string `json:"account_id"`
-	Username  string `json:"username"`
-	Email     string `json:"email"`
+	AccountID string  `json:"account_id"`
+	UserID    string  `json:"user_id"`
+	OrgID     *string `json:"org_id"`
+	Username  string  `json:"username"`
+	Email     string  `json:"email"`
 	jwt.RegisteredClaims
 }
 
-func NewAccountClaims(accountId, email, username string, duration time.Duration) (*AccountClaims, error) {
+func NewAccountClaims(params WithParams) (*AccountClaims, error) {
 	claims := &AccountClaims{
-		AccountID: accountId,
-		Username:  username,
-		Email:     email,
+		AccountID: params.AccountID,
+		UserID:    params.UserID,
+		OrgID:     params.OrgID,
+		Username:  params.Username,
+		Email:     params.Email,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ID:        ksuid.New().String(),
-			Subject:   email,
+			Subject:   params.Email,
 			Audience:  []string{},
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(duration)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(params.Duration)),
 		},
 	}
 

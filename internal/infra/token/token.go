@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"strings"
-	"time"
 
 	"github.com/aead/chacha20poly1305"
 	. "github.com/bernardinorafael/internal/_shared/errors"
@@ -22,7 +21,7 @@ func New(ctx context.Context, log logger.Logger, secretKey string) *Token {
 	return &Token{ctx, log, secretKey}
 }
 
-func (t *Token) GenToken(accId, email, username string, duration time.Duration) (string, *AccountClaims, error) {
+func (t *Token) GenToken(params WithParams) (string, *AccountClaims, error) {
 	var token string
 
 	if len(t.secretKey) != chacha20poly1305.KeySize {
@@ -31,7 +30,7 @@ func (t *Token) GenToken(accId, email, username string, duration time.Duration) 
 		return token, nil, NewBadRequestError(msg, nil)
 	}
 
-	claims, err := NewAccountClaims(accId, email, username, duration)
+	claims, err := NewAccountClaims(params)
 	if err != nil {
 		msg := "failed to create account claims"
 		t.log.Errorw(t.ctx, msg, logger.Err(err))

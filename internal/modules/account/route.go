@@ -98,6 +98,8 @@ func (c controller) login(w http.ResponseWriter, r *http.Request) {
 	payload := AccountPayload{
 		AccessToken: token,
 		AccountID:   claims.AccountID,
+		UserID:      claims.UserID,
+		OrgID:       claims.OrgID,
 		Username:    claims.Username,
 		Email:       claims.Email,
 		IssuedAt:    claims.RegisteredClaims.IssuedAt.Unix(),
@@ -132,6 +134,8 @@ func (c controller) register(w http.ResponseWriter, r *http.Request) {
 	payload := AccountPayload{
 		AccessToken: token,
 		AccountID:   claims.AccountID,
+		UserID:      claims.UserID,
+		OrgID:       claims.OrgID,
 		Username:    claims.Username,
 		Email:       claims.Email,
 		IssuedAt:    claims.RegisteredClaims.IssuedAt.Unix(),

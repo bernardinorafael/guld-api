@@ -26,18 +26,20 @@ type EntityWithUser struct {
 	Password string      `json:"password,omitempty" db:"password"`
 	IsActive bool        `json:"is_active" db:"is_active"`
 	User     user.Entity `json:"user" db:"user"`
-	Org      org.Entity  `json:"org" db:"org"`
+	Org      *org.Entity `json:"org" db:"org"`
 	Created  time.Time   `json:"created" db:"created"`
 	Updated  time.Time   `json:"updated" db:"updated"`
 }
 
 type AccountPayload struct {
-	AccessToken string `json:"access_token"`
-	AccountID   string `json:"account_id"`
-	Username    string `json:"username"`
-	Email       string `json:"email"`
-	IssuedAt    int64  `json:"issued_at"`
-	ExpiresAt   int64  `json:"expires_at"`
+	AccessToken string  `json:"access_token"`
+	AccountID   string  `json:"account_id"`
+	UserID      string  `json:"user_id"`
+	OrgID       *string `json:"org_id"`
+	Username    string  `json:"username"`
+	Email       string  `json:"email"`
+	IssuedAt    int64   `json:"issued_at"`
+	ExpiresAt   int64   `json:"expires_at"`
 }
 
 type CreateAccountParams struct {
