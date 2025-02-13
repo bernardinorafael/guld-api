@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/bernardinorafael/internal/_shared/errors"
-	. "github.com/bernardinorafael/internal/_shared/util"
+	. "github.com/bernardinorafael/internal/_shared/errors"
+	"github.com/bernardinorafael/internal/_shared/util"
 
 	"github.com/bernardinorafael/internal/infra/http/middleware"
 	"github.com/bernardinorafael/pkg/logger"
@@ -39,46 +39,86 @@ func (c controller) RegisterRoute(r *chi.Mux) {
 	r.Route("/api/v1/teams", func(r chi.Router) {
 		r.Use(m.WithAuth)
 
-		r.Post("/", c.createTeam)
-		r.Get("/{ownerId}", c.getAllTeams)
+		r.Post("/", c.create)
+		r.Get("/organization/{orgId}/owner/{ownerId}", c.getAll)
+		r.Get("/{teamId}/organization/{orgId}", c.getByID)
+		r.Get("/{slug}/organization/{orgId}", c.getBySlug)
 	})
 }
 
-func (c controller) getAllTeams(w http.ResponseWriter, r *http.Request) {
-
-	teams, err := c.svc.GetAll(c.ctx, chi.URLParam(r, "ownerId"))
+func (c controller) getByID(w http.ResponseWriter, r *http.Request) {
+	team, err := c.svc.GetBySlug(c.ctx, chi.URLParam(r, "org_id"), chi.URLParam(r, "teamId"))
 	if err != nil {
-		errors.NewHttpError(w, errors.NewBadRequestError(
-			"failed to delete email",
-			err,
-		))
+		if err, ok := err.(ApplicationError); ok {
+			NewHttpError(w, err)
+			return
+		}
+		NewHttpError(w, NewInternalServerError(err))
 		return
 	}
 
-	WriteJSONResponse(w, http.StatusOK, map[string]any{
+	util.WriteJSONResponse(w, http.StatusOK, map[string]any{
+		"team": team,
+	})
+}
+
+func (c controller) getBySlug(w http.ResponseWriter, r *http.Request) {
+	team, err := c.svc.GetBySlug(c.ctx, chi.URLParam(r, "orgId"), chi.URLParam(r, "slug"))
+	if err != nil {
+		if err, ok := err.(ApplicationError); ok {
+			NewHttpError(w, err)
+			return
+		}
+		NewHttpError(w, NewInternalServerError(err))
+		return
+	}
+
+	util.WriteJSONResponse(w, http.StatusOK, map[string]any{
+		"team": team,
+	})
+}
+
+func (c controller) getAll(w http.ResponseWriter, r *http.Request) {
+	teams, err := c.svc.GetAll(
+		c.ctx,
+		chi.URLParam(r, "orgId"),
+		chi.URLParam(r, "ownerId"),
+	)
+	if err != nil {
+		if err, ok := err.(ApplicationError); ok {
+			NewHttpError(w, err)
+			return
+		}
+		NewHttpError(w, NewInternalServerError(err))
+		return
+	}
+
+	util.WriteJSONResponse(w, http.StatusOK, map[string]any{
 		"teams": teams,
 	})
 
 }
 
-func (c controller) createTeam(w http.ResponseWriter, r *http.Request) {
+func (c controller) create(w http.ResponseWriter, r *http.Request) {
 	var body CreateTeamParams
 
-	if err := ReadRequestBody(w, r, &body); err != nil {
-		errors.NewHttpError(w, errors.NewBadRequestError(
-			"failed to create team",
-			err,
-		))
+	if err := util.ReadRequestBody(w, r, &body); err != nil {
+		if err, ok := err.(ApplicationError); ok {
+			NewHttpError(w, err)
+			return
+		}
+		NewHttpError(w, NewInternalServerError(err))
 		return
 	}
 
 	if err := c.svc.Create(c.ctx, body); err != nil {
-		errors.NewHttpError(w, errors.NewBadRequestError(
-			"failed to create team",
-			err,
-		))
+		if err, ok := err.(ApplicationError); ok {
+			NewHttpError(w, err)
+			return
+		}
+		NewHttpError(w, NewInternalServerError(err))
 		return
 	}
 
-	WriteSuccessResponse(w, http.StatusOK)
+	util.WriteSuccessResponse(w, http.StatusOK)
 }

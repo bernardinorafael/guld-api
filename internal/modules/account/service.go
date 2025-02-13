@@ -97,8 +97,6 @@ func (s svc) GetSignedInAccount(ctx context.Context) (*EntityWithUser, error) {
 		return nil, NewConflictError(msg, InvalidCredentials, err, nil)
 	}
 
-	util.PrintJSON(&acc)
-
 	return acc, nil
 }
 
@@ -121,8 +119,6 @@ func (s svc) Login(ctx context.Context, username string, password string) (strin
 		s.log.Errorw(ctx, "password does not match", logger.Err(err))
 		return "", nil, NewConflictError("check username and/or password", InvalidCredentials, err, nil)
 	}
-
-	util.PrintJSON(acc)
 
 	// TODO: Implement retrieve user from account
 	t, claims, err := s.t.GenToken(

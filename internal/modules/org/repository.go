@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/bernardinorafael/internal/modules/user"
@@ -39,7 +38,7 @@ func (r repo) FindByID(ctx context.Context, id string) (*EntityWithOwner, error)
 		err = tx.GetContext(ctx, &owner, `SELECT * FROM users WHERE id = $1`, org.OwnerID)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				return fmt.Errorf("user with id %s not found", org.OwnerID)
+				return nil
 			}
 			return err
 		}

@@ -1,0 +1,2 @@
+ALTER TABLE "teams"
+ADD COLUMN "members_count" INTEGER NOT NULL DEFAULT 0;

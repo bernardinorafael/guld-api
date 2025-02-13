@@ -67,7 +67,9 @@ func (c controller) getSigned(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	util.WriteJSONResponse(w, http.StatusOK, acc)
+	util.WriteJSONResponse(w, http.StatusOK, map[string]any{
+		"account": acc,
+	})
 }
 
 func (c controller) login(w http.ResponseWriter, r *http.Request) {

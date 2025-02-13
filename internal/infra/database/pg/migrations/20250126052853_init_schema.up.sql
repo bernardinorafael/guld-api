@@ -18,6 +18,7 @@ CREATE TABLE
 		"user_id" VARCHAR(255) NOT NULL,
 		"password" VARCHAR(255) NOT NULL,
 		"created" TIMESTAMPTZ NOT NULL DEFAULT NOW (),
+		"is_active" BOOLEAN NOT NULL DEFAULT false,
 		"updated" TIMESTAMPTZ NOT NULL DEFAULT NOW (),
 		FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE CASCADE
 	);

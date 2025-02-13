@@ -2,8 +2,12 @@ package team
 
 import (
 	"context"
+	"database/sql"
+	"errors"
+	"fmt"
 	"time"
 
+	"github.com/bernardinorafael/internal/_shared/util"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -13,32 +17,62 @@ func NewRepository(db *sqlx.DB) RepositoryInterface {
 	return &repo{db}
 }
 
-func (r repo) Create(ctx context.Context, team Entity) (*Entity, error) {
+func (r *repo) FindByID(ctx context.Context, orgId, teamId string) (*Entity, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
-	var teamId string
-	rows, err := r.db.NamedQueryContext(
+	var team Entity
+	err := r.db.GetContext(
 		ctx,
-		`
-		INSERT INTO teams (name, slug, owner_id)
-		VALUES (:name, :slug, :owner_id)
-		RETURNING id
-		`,
-		team,
+		&team,
+		"SELECT * FROM teams WHERE id = $1 AND org_id = $2",
+		teamId,
+		orgId,
 	)
 	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	if rows.Next() {
-		if err := rows.Scan(&teamId); err != nil {
-			return nil, err
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
 		}
+		return nil, fmt.Errorf("error on find team by id: %w", err)
 	}
-	team.ID = teamId
 
 	return &team, nil
+}
+
+func (r *repo) FindBySlug(ctx context.Context, orgId, slug string) (*Entity, error) {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	var team Entity
+	err := r.db.GetContext(
+		ctx,
+		&team,
+		"SELECT * FROM teams WHERE slug = $1 AND org_id = $2",
+		slug,
+		orgId,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("error on find team by slug: %w", err)
+	}
+
+	return &team, nil
+}
+
+func (r repo) Insert(ctx context.Context, team Entity) error {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	util.PrintJSON(team)
+
+	_, err := r.db.NamedExecContext(ctx, InsertTeamQuery, team)
+	if err != nil {
+		return fmt.Errorf("error on insert team: %w", err)
+	}
+
+	return nil
 }
 
 func (r repo) Delete(ctx context.Context, ownerId string, teamId string) error {
@@ -52,29 +86,25 @@ func (r repo) Delete(ctx context.Context, ownerId string, teamId string) error {
 		ownerId,
 	)
 	if err != nil {
-		return err
+		return fmt.Errorf("error on delete team: %w", err)
 	}
 
 	return nil
 }
 
-func (r repo) GetAll(ctx context.Context, ownerId string) ([]Entity, error) {
+func (r repo) FindAll(ctx context.Context, orgId, ownerId string) ([]Entity, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
-	var teams = make([]Entity, 0)
-	err := r.db.SelectContext(
-		ctx,
-		&teams,
-		`
-		SELECT * FROM teams
-		WHERE owner_id = $1 ORDER BY created DESC
-		`,
-		ownerId,
-	)
+	teams := make([]Entity, 0)
+	err := r.db.SelectContext(ctx, &teams, FindAllTeamsQuery, ownerId, orgId)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error on find all teams: %w", err)
 	}
 
 	return teams, nil
+}
+
+func (r repo) FindAllWithOrg(ctx context.Context, orgId, ownerId string) ([]EntityWithOrg, error) {
+	panic("unimplemented")
 }
