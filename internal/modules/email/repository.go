@@ -2,6 +2,8 @@ package email
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -15,7 +17,7 @@ func NewRepository(db *sqlx.DB) RepositoryInterface {
 	return &repo{db}
 }
 
-func (r *repo) GetPrimary(ctx context.Context, userId string) (*AdditionalEmail, error) {
+func (r *repo) FindPrimary(ctx context.Context, userId string) (*AdditionalEmail, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
@@ -23,10 +25,13 @@ func (r *repo) GetPrimary(ctx context.Context, userId string) (*AdditionalEmail,
 	err := r.db.GetContext(
 		ctx,
 		&addr,
-		`SELECT * FROM emails WHERE user_id = $1 AND primary = true`,
+		"SELECT * FROM emails WHERE user_id = $1 AND is_primary = true",
 		userId,
 	)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("failed to retrieve additional_email: %w", err)
 	}
 
@@ -40,27 +45,36 @@ func (r *repo) FindByEmail(ctx context.Context, email string) (*AdditionalEmail,
 	var addr AdditionalEmail
 	err := r.db.GetContext(ctx, &addr, "SELECT * FROM emails WHERE email = $1", email)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
 		return nil, err
 	}
 
 	return &addr, nil
 }
 
-func (r repo) Create(ctx context.Context, email AdditionalEmail) error {
+func (r repo) Insert(ctx context.Context, email AdditionalEmail) error {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
 	query := `
 		INSERT INTO emails (
+			id,
 			user_id,
 			email,
-			primary,
-			verified
+			is_primary,
+			is_verified,
+			created,
+			updated
 		) VALUES (
+			:id,
 			:user_id,
 			:email,
-			:primary,
-			:verified
+			:is_primary,
+			:is_verified,
+			:created,
+			:updated
 		)
 	`
 	_, err := r.db.NamedExecContext(ctx, query, email)
@@ -88,12 +102,17 @@ func (r repo) Delete(ctx context.Context, userId, emailId string) error {
 	return nil
 }
 
-func (r repo) GetAllByUser(ctx context.Context, userId string) ([]AdditionalEmail, error) {
+func (r repo) FindAllByUser(ctx context.Context, userId string) ([]AdditionalEmail, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
 	var emails []AdditionalEmail
-	err := r.db.SelectContext(ctx, &emails, "SELECT * FROM emails WHERE user_id = $1", userId)
+	err := r.db.SelectContext(
+		ctx,
+		&emails,
+		"SELECT * FROM emails WHERE user_id = $1 ORDER BY created DESC",
+		userId,
+	)
 	if err != nil {
 		return emails, err
 	}
@@ -108,6 +127,9 @@ func (r repo) FindByID(ctx context.Context, emailId string) (*AdditionalEmail, e
 	var email AdditionalEmail
 	err := r.db.GetContext(ctx, &email, "SELECT * FROM emails WHERE id = $1", emailId)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
 		return nil, err
 	}
 
@@ -128,13 +150,13 @@ func (r repo) Update(ctx context.Context, email EmailUpdateParams) error {
 	}
 
 	if email.IsPrimary != nil {
-		clauses = append(clauses, "primary = :primary")
-		params["primary"] = email.IsPrimary
+		clauses = append(clauses, "is_primary = :is_primary")
+		params["is_primary"] = email.IsPrimary
 	}
 
 	if email.IsVerified != nil {
-		clauses = append(clauses, "verified = :verified")
-		params["verified"] = email.IsVerified
+		clauses = append(clauses, "is_verified = :is_verified")
+		params["is_verified"] = email.IsVerified
 	}
 
 	_, err := r.db.NamedExecContext(

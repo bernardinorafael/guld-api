@@ -5,11 +5,11 @@ import (
 )
 
 type RepositoryInterface interface {
-	Create(ctx context.Context, email AdditionalEmail) error
+	Insert(ctx context.Context, email AdditionalEmail) error
 	Update(ctx context.Context, email EmailUpdateParams) error
 	FindByID(ctx context.Context, emailId string) (*AdditionalEmail, error)
 	FindByEmail(ctx context.Context, email string) (*AdditionalEmail, error)
-	GetAllByUser(ctx context.Context, userId string) ([]AdditionalEmail, error)
+	FindAllByUser(ctx context.Context, userId string) ([]AdditionalEmail, error)
 	Delete(ctx context.Context, userId, emailId string) error
-	GetPrimary(ctx context.Context, userId string) (*AdditionalEmail, error)
+	FindPrimary(ctx context.Context, userId string) (*AdditionalEmail, error)
 }

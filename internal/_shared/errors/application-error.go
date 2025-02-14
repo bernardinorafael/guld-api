@@ -25,6 +25,7 @@ const (
 	InvalidCredentials      ErrorCode = "INVALID_CREDENTIALS"
 	DisabledAccount         ErrorCode = "DISABLED_ACCOUNT"
 	ExpiredLink             ErrorCode = "EXPIRED_LINK"
+	InvalidDeletion         ErrorCode = "INVALID_DELETION"
 )
 
 type ApplicationError struct {

@@ -9,12 +9,13 @@ type UserRegisterParams struct {
 
 type CreatePhoneData struct {
 	Phone     string `json:"phone"`
-	IsPrimary bool   `json:"primary"`
+	IsPrimary bool   `json:"is_primary"`
 }
 
-type CreateEmailData struct {
+type CreateEmailParams struct {
 	Email     string `json:"email"`
-	IsPrimary bool   `json:"primary"`
+	UserID    string `json:"user_id"`
+	IsPrimary bool   `json:"is_primary"`
 }
 
 type UserProfileUpdate struct {

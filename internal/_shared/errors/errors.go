@@ -21,6 +21,11 @@ func NewInternalServerError(err error) ApplicationError {
 	return newApplicationError(httpCode, InternalServerError, "something went wrong", err, nil)
 }
 
+func NewForbiddenError(msg string, code ErrorCode, err error) ApplicationError {
+	httpCode := http.StatusForbidden
+	return newApplicationError(httpCode, code, msg, err, nil)
+}
+
 func NewValidationFieldError(msg string, err error, fields []Field) ApplicationError {
 	httpCode := http.StatusUnprocessableEntity
 	return newApplicationError(httpCode, ValidationField, msg, err, fields)

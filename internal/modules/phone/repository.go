@@ -23,13 +23,13 @@ func (r repo) Create(ctx context.Context, phone AdditionalPhone) error {
 		INSERT INTO phones (
 			user_id,
 			phone,
-			primary,
-			verified
+			is_primary,
+			is_verified
 		) VALUES (
 			:user_id,
 			:phone,
-			:primary,
-			:verified
+			:is_primary,
+			:is_verified
 		)
 	`
 	_, err := r.db.NamedExecContext(ctx, query, phone)
@@ -96,12 +96,12 @@ func (r repo) Update(ctx context.Context, phone PhoneUpdateParams) error {
 		params["phone"] = phone.Phone
 	}
 	if phone.IsPrimary != nil {
-		clauses = append(clauses, "primary = :primary")
-		params["primary"] = phone.IsPrimary
+		clauses = append(clauses, "is_primary = :is_primary")
+		params["is_primary"] = phone.IsPrimary
 	}
 	if phone.IsVerified != nil {
-		clauses = append(clauses, "verified = :verified")
-		params["verified"] = phone.IsVerified
+		clauses = append(clauses, "is_verified = :is_verified")
+		params["is_verified"] = phone.IsVerified
 	}
 
 	_, err := r.db.NamedExecContext(
@@ -140,7 +140,7 @@ func (r *repo) GetPrimary(ctx context.Context, userId string) (*AdditionalPhone,
 	err := r.db.GetContext(
 		ctx,
 		&p,
-		`SELECT * FROM phones WHERE user_id = $1 AND primary = true`,
+		`SELECT * FROM phones WHERE user_id = $1 AND is_primary = true`,
 		userId,
 	)
 	if err != nil {

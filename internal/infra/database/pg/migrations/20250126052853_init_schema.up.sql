@@ -28,8 +28,8 @@ CREATE TABLE
 		"id" VARCHAR(255) PRIMARY KEY NOT NULL,
 		"user_id" VARCHAR(255) NOT NULL,
 		"phone" VARCHAR(255) UNIQUE NOT NULL,
-		"primary" BOOLEAN NOT NULL DEFAULT false,
-		"verified" BOOLEAN NOT NULL DEFAULT false,
+		"is_primary" BOOLEAN NOT NULL DEFAULT false,
+		"is_verified" BOOLEAN NOT NULL DEFAULT false,
 		"created" TIMESTAMPTZ NOT NULL DEFAULT NOW (),
 		"updated" TIMESTAMPTZ NOT NULL DEFAULT NOW (),
 		CONSTRAINT "phones_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE CASCADE
@@ -40,8 +40,8 @@ CREATE TABLE
 		"id" VARCHAR(255) PRIMARY KEY NOT NULL,
 		"user_id" VARCHAR(255) NOT NULL,
 		"email" VARCHAR(255) UNIQUE NOT NULL,
-		"primary" BOOLEAN NOT NULL DEFAULT false,
-		"verified" BOOLEAN NOT NULL DEFAULT false,
+		"is_primary" BOOLEAN NOT NULL DEFAULT false,
+		"is_verified" BOOLEAN NOT NULL DEFAULT false,
 		"created" TIMESTAMPTZ NOT NULL DEFAULT NOW (),
 		"updated" TIMESTAMPTZ NOT NULL DEFAULT NOW (),
 		CONSTRAINT "emails_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE CASCADE
