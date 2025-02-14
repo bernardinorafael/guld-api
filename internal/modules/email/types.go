@@ -13,8 +13,7 @@ type AdditionalEmail struct {
 }
 
 type EmailUpdateParams struct {
-	ID         string  `json:"id" db:"id"`
-	Email      *string `json:"email" db:"email"`
-	IsPrimary  *bool   `json:"is_primary" db:"is_primary"`
-	IsVerified *bool   `json:"is_verified" db:"is_verified"`
+	ID         string `json:"id" db:"id"`
+	IsPrimary  *bool  `json:"is_primary" db:"is_primary"`
+	IsVerified *bool  `json:"is_verified" db:"is_verified"`
 }

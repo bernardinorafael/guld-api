@@ -26,6 +26,7 @@ const (
 	DisabledAccount         ErrorCode = "DISABLED_ACCOUNT"
 	ExpiredLink             ErrorCode = "EXPIRED_LINK"
 	InvalidDeletion         ErrorCode = "INVALID_DELETION"
+	MaxLimitResourceReached ErrorCode = "MAX_LIMIT_RESOURCE_REACHED"
 )
 
 type ApplicationError struct {

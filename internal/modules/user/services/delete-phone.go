@@ -7,43 +7,43 @@ import (
 	"github.com/bernardinorafael/pkg/logger"
 )
 
-func (s svc) DeleteEmail(ctx context.Context, userId, emailId string) error {
+func (s svc) DeletePhone(ctx context.Context, userId, phoneId string) error {
 	s.log.Info(ctx, "Process Started")
 	defer s.log.Info(ctx, "Process Finished")
 
-	allEmails, err := s.emailRepo.FindAllByUser(ctx, userId)
+	allPhones, err := s.phoneRepo.FindAllByUser(ctx, userId)
 	if err != nil {
-		msg := "error on find all emails"
+		msg := "error on find all phones"
 		s.log.Errorw(ctx, msg, logger.Err(err))
 		return NewBadRequestError(msg, err)
 	}
 
-	if len(allEmails) == 1 {
-		msg := "cannot delete last email"
+	if len(allPhones) == 1 {
+		msg := "cannot delete last phone"
 		s.log.Errorw(ctx, msg, logger.Err(err))
 		return NewForbiddenError(msg, InvalidDeletion, err)
 	}
 
-	email, err := s.emailRepo.FindByID(ctx, emailId)
+	phone, err := s.phoneRepo.FindByID(ctx, phoneId)
 	if err != nil {
-		msg := "error on find email"
+		msg := "error on find phone"
 		s.log.Errorw(ctx, msg, logger.Err(err))
 		return NewBadRequestError(msg, err)
 	}
-	if email == nil {
-		msg := "email not found"
+	if phone == nil {
+		msg := "phone not found"
 		s.log.Errorw(ctx, msg, logger.Err(err))
 		return NewBadRequestError(msg, err)
 	}
 
-	if email.IsPrimary {
-		msg := "primary email cannot be deleted"
+	if phone.IsPrimary {
+		msg := "primary phone cannot be deleted"
 		s.log.Errorw(ctx, msg, logger.Err(err))
 		return NewForbiddenError(msg, InvalidDeletion, err)
 	}
 
-	if err := s.emailRepo.Delete(ctx, userId, emailId); err != nil {
-		msg := "error on delete email"
+	if err := s.phoneRepo.Delete(ctx, userId, phoneId); err != nil {
+		msg := "error on delete phone"
 		s.log.Errorw(ctx, msg, logger.Err(err))
 		return NewBadRequestError(msg, err)
 	}

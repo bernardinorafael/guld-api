@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	. "github.com/bernardinorafael/internal/_shared/errors"
-	"github.com/bernardinorafael/internal/modules/email"
+	"github.com/bernardinorafael/internal/modules/phone"
 	"github.com/bernardinorafael/internal/modules/user"
 	"github.com/bernardinorafael/pkg/logger"
 )
@@ -19,31 +19,31 @@ import (
 * we will do all these operations and validations by fetching all emails at once
  */
 
-func (s svc) SetPrimaryEmail(ctx context.Context, userId, emailId string) error {
+func (s svc) SetPrimaryPhone(ctx context.Context, userId, phoneId string) error {
 	s.log.Info(ctx, "Process Started")
 	defer s.log.Info(ctx, "Process Finished")
 
-	emails, err := s.emailRepo.FindAllByUser(ctx, userId)
+	phones, err := s.phoneRepo.FindAllByUser(ctx, userId)
 	if err != nil {
-		msg := "error on find all emails"
+		msg := "error on find all phones"
 		s.log.Errorw(ctx, msg, logger.Err(err))
 		return NewBadRequestError(msg, err)
 	}
 
-	var currPrimary *email.AdditionalEmail
-	var nextPrimary *email.AdditionalEmail
+	var currPrimary *phone.AdditionalPhone
+	var nextPrimary *phone.AdditionalPhone
 
-	for _, v := range emails {
+	for _, v := range phones {
 		if v.IsPrimary {
 			currPrimary = &v
 		}
-		if v.ID == emailId {
+		if v.ID == phoneId {
 			nextPrimary = &v
 		}
 	}
 
 	if nextPrimary == nil {
-		msg := fmt.Sprintf("not found email with id %s", emailId)
+		msg := fmt.Sprintf("not found phone with id %s", phoneId)
 		s.log.Errorw(ctx, msg, nil)
 		return NewNotFoundError(msg, nil)
 
@@ -52,28 +52,28 @@ func (s svc) SetPrimaryEmail(ctx context.Context, userId, emailId string) error 
 	currPrimary.IsPrimary = false
 	nextPrimary.IsPrimary = true
 
-	emailsToUpdate := []email.EmailUpdateParams{
+	phonesToUpdate := []phone.PhoneUpdateParams{
 		{ID: currPrimary.ID, IsPrimary: &currPrimary.IsPrimary},
 		{ID: nextPrimary.ID, IsPrimary: &nextPrimary.IsPrimary},
 	}
 
 	// This isn't the best approach
 	// in the future we should use a batch update
-	for _, update := range emailsToUpdate {
-		err = s.emailRepo.Update(ctx, update)
+	for _, update := range phonesToUpdate {
+		err = s.phoneRepo.Update(ctx, update)
 		if err != nil {
-			msg := fmt.Sprintf("error on updating email with id %s", update.ID)
+			msg := fmt.Sprintf("error on updating phone with id %s", update.ID)
 			s.log.Errorw(ctx, msg, logger.Err(err))
 			return NewBadRequestError(msg, err)
 		}
 	}
 
 	err = s.userRepo.Update(ctx, user.PartialEntity{
-		ID:           userId,
-		EmailAddress: &nextPrimary.Email,
+		ID:          userId,
+		PhoneNumber: &nextPrimary.Phone,
 	})
 	if err != nil {
-		msg := "error on updating user email"
+		msg := "error on updating user phone number"
 		s.log.Errorw(ctx, msg, logger.Err(err))
 		return NewBadRequestError(msg, err)
 	}

@@ -17,27 +17,6 @@ func NewRepository(db *sqlx.DB) RepositoryInterface {
 	return &repo{db}
 }
 
-func (r *repo) FindPrimary(ctx context.Context, userId string) (*AdditionalEmail, error) {
-	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
-	defer cancel()
-
-	var addr AdditionalEmail
-	err := r.db.GetContext(
-		ctx,
-		&addr,
-		"SELECT * FROM emails WHERE user_id = $1 AND is_primary = true",
-		userId,
-	)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("failed to retrieve additional_email: %w", err)
-	}
-
-	return &addr, nil
-}
-
 func (r *repo) FindByEmail(ctx context.Context, email string) (*AdditionalEmail, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
@@ -140,14 +119,8 @@ func (r repo) Update(ctx context.Context, email EmailUpdateParams) error {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
-	// The ID field must always be present
 	params := map[string]any{"id": email.ID}
 	clauses := []string{}
-
-	if email.Email != nil {
-		clauses = append(clauses, "email = :email")
-		params["email"] = email.Email
-	}
 
 	if email.IsPrimary != nil {
 		clauses = append(clauses, "is_primary = :is_primary")

@@ -13,9 +13,8 @@ type CreatePhoneData struct {
 }
 
 type CreateEmailParams struct {
-	Email     string `json:"email"`
-	UserID    string `json:"user_id"`
-	IsPrimary bool   `json:"is_primary"`
+	Email  string `json:"email"`
+	UserID string `json:"user_id"`
 }
 
 type UserProfileUpdate struct {

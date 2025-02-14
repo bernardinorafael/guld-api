@@ -7,6 +7,10 @@ import (
 	"github.com/bernardinorafael/pkg/logger"
 )
 
+const (
+	maxEmailAndPhoneByUser = 3
+)
+
 type svc struct {
 	log       logger.Logger
 	userRepo  user.RepositoryInterface

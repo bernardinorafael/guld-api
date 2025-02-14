@@ -2,6 +2,7 @@ package phone
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"strings"
 	"time"
@@ -15,21 +16,27 @@ func NewRepository(db *sqlx.DB) RepositoryInterface {
 	return &repo{db}
 }
 
-func (r repo) Create(ctx context.Context, phone AdditionalPhone) error {
+func (r repo) Insert(ctx context.Context, phone AdditionalPhone) error {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
 	query := `
 		INSERT INTO phones (
+			id,
 			user_id,
 			phone,
 			is_primary,
-			is_verified
+			is_verified,
+			created,
+			updated
 		) VALUES (
+			:id,
 			:user_id,
 			:phone,
 			:is_primary,
-			:is_verified
+			:is_verified,
+			:created,
+			:updated
 		)
 	`
 	_, err := r.db.NamedExecContext(ctx, query, phone)
@@ -57,12 +64,17 @@ func (r repo) Delete(ctx context.Context, userId, phoneId string) error {
 	return nil
 }
 
-func (r repo) GetAllByUser(ctx context.Context, userId string) ([]AdditionalPhone, error) {
+func (r repo) FindAllByUser(ctx context.Context, userId string) ([]AdditionalPhone, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
 	var phones []AdditionalPhone
-	err := r.db.SelectContext(ctx, &phones, "SELECT * FROM phones WHERE user_id = $1", userId)
+	err := r.db.SelectContext(
+		ctx,
+		&phones,
+		"SELECT * FROM phones WHERE user_id = $1 ORDER BY created DESC",
+		userId,
+	)
 	if err != nil {
 		return phones, err
 	}
@@ -75,7 +87,12 @@ func (r repo) FindByID(ctx context.Context, phoneId string) (*AdditionalPhone, e
 	defer cancel()
 
 	var p AdditionalPhone
-	err := r.db.GetContext(ctx, &p, "SELECT * FROM phones WHERE id = $1", phoneId)
+	err := r.db.GetContext(
+		ctx,
+		&p,
+		"SELECT * FROM phones WHERE id = $1",
+		phoneId,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -91,10 +108,6 @@ func (r repo) Update(ctx context.Context, phone PhoneUpdateParams) error {
 	params := map[string]any{"id": phone.ID}
 	clauses := []string{}
 
-	if phone.Phone != nil {
-		clauses = append(clauses, "phone = :phone")
-		params["phone"] = phone.Phone
-	}
 	if phone.IsPrimary != nil {
 		clauses = append(clauses, "is_primary = :is_primary")
 		params["is_primary"] = phone.IsPrimary
@@ -126,25 +139,10 @@ func (r *repo) FindByPhone(ctx context.Context, phone string) (*AdditionalPhone,
 	var p AdditionalPhone
 	err := r.db.GetContext(ctx, &p, "SELECT * FROM phones WHERE phone = $1", phone)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
 		return nil, err
-	}
-
-	return &p, nil
-}
-
-func (r *repo) GetPrimary(ctx context.Context, userId string) (*AdditionalPhone, error) {
-	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
-	defer cancel()
-
-	var p AdditionalPhone
-	err := r.db.GetContext(
-		ctx,
-		&p,
-		`SELECT * FROM phones WHERE user_id = $1 AND is_primary = true`,
-		userId,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve additional_phone: %w", err)
 	}
 
 	return &p, nil

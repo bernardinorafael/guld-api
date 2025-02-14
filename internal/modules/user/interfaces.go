@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/bernardinorafael/internal/modules/email"
+	"github.com/bernardinorafael/internal/modules/phone"
 	"github.com/bernardinorafael/pkg/pagination"
 )
 
@@ -19,6 +20,12 @@ type ServiceInterface interface {
 	FindAllEmails(ctx context.Context, userId string) ([]email.AdditionalEmail, error)
 	DeleteEmail(ctx context.Context, userId, emailId string) error
 	SetPrimaryEmail(ctx context.Context, userId, emailId string) error
+
+	// Phones methods
+	AddPhone(ctx context.Context, dto phone.CreatePhoneParams) error
+	FindAllPhones(ctx context.Context, userId string) ([]phone.AdditionalPhone, error)
+	DeletePhone(ctx context.Context, userId, phoneId string) error
+	SetPrimaryPhone(ctx context.Context, userId, phoneId string) error
 }
 
 type RepositoryInterface interface {

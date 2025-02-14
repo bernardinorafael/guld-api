@@ -11,5 +11,4 @@ type RepositoryInterface interface {
 	FindByEmail(ctx context.Context, email string) (*AdditionalEmail, error)
 	FindAllByUser(ctx context.Context, userId string) ([]AdditionalEmail, error)
 	Delete(ctx context.Context, userId, emailId string) error
-	FindPrimary(ctx context.Context, userId string) (*AdditionalEmail, error)
 }

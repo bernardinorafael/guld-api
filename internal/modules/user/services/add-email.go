@@ -15,83 +15,35 @@ func (s svc) AddEmail(ctx context.Context, dto user.CreateEmailParams) error {
 	s.log.Info(ctx, "Process Started")
 	defer s.log.Info(ctx, "Process Finished")
 
-	existingUser, err := s.userRepo.FindByID(ctx, dto.UserID)
+	allEmails, err := s.emailRepo.FindAllByUser(ctx, dto.UserID)
 	if err != nil {
-		msg := "error on retrieve user by id"
+		msg := "error on find all emails by user"
 		s.log.Errorw(ctx, msg, logger.Err(err))
 		return NewBadRequestError(msg, err)
 	}
-	if existingUser == nil {
-		msg := "user not found"
+
+	// TODO: If needed, transform into a table along with other settings
+	if len(allEmails) >= maxEmailAndPhoneByUser {
+		msg := "user already has the maximum number of emails"
 		s.log.Errorw(ctx, msg, logger.Err(err))
-		return NewNotFoundError(msg, err)
+		return NewForbiddenError(msg, MaxLimitResourceReached, err)
 	}
 
-	existingEmail, err := s.emailRepo.FindByEmail(ctx, dto.Email)
-	if err != nil {
-		msg := "error on retrieve email"
-		s.log.Errorw(ctx, msg, logger.Err(err))
-		return NewBadRequestError(msg, err)
-	}
-	if existingEmail != nil {
-		msg := "email already exists"
-		s.log.Errorw(ctx, msg, logger.Err(err))
-		return NewConflictError(msg, ResourceAlreadyTaken, err, []Field{
-			{Field: "email", Msg: msg},
-		})
-	}
-
-	if !dto.IsPrimary {
-		err = s.emailRepo.Insert(ctx, email.AdditionalEmail{
-			ID:         util.GenID("email"),
-			UserID:     dto.UserID,
-			Email:      dto.Email,
-			IsPrimary:  dto.IsPrimary,
-			IsVerified: false,
-			Created:    time.Now(),
-			Updated:    time.Now(),
-		})
-		if err != nil {
-			msg := "error on insert email"
+	for _, v := range allEmails {
+		if v.Email == dto.Email {
+			msg := "email already exists"
 			s.log.Errorw(ctx, msg, logger.Err(err))
-			return NewBadRequestError(msg, err)
+			return NewConflictError(msg, ResourceAlreadyTaken, err, []Field{
+				{Field: "email", Msg: msg},
+			})
 		}
-		return nil
-	}
-
-	err = s.userRepo.Update(ctx, user.PartialEntity{
-		ID:           existingUser.User.ID,
-		EmailAddress: &dto.Email,
-	})
-	if err != nil {
-		msg := "error on update user email"
-		s.log.Errorw(ctx, msg, logger.Err(err))
-		return NewBadRequestError(msg, err)
-	}
-
-	primaryEmail, err := s.emailRepo.FindPrimary(ctx, dto.UserID)
-	if err != nil {
-		msg := "error on find primary email"
-		s.log.Errorw(ctx, msg, logger.Err(err))
-		return NewBadRequestError(msg, err)
-	}
-
-	primaryEmail.IsPrimary = false
-	err = s.emailRepo.Update(ctx, email.EmailUpdateParams{
-		ID:        primaryEmail.ID,
-		IsPrimary: &primaryEmail.IsPrimary,
-	})
-	if err != nil {
-		msg := "error on update primary email"
-		s.log.Errorw(ctx, msg, logger.Err(err))
-		return NewBadRequestError(msg, err)
 	}
 
 	err = s.emailRepo.Insert(ctx, email.AdditionalEmail{
 		ID:         util.GenID("email"),
 		UserID:     dto.UserID,
 		Email:      dto.Email,
-		IsPrimary:  dto.IsPrimary,
+		IsPrimary:  false,
 		IsVerified: false,
 		Created:    time.Now(),
 		Updated:    time.Now(),
@@ -101,6 +53,5 @@ func (s svc) AddEmail(ctx context.Context, dto user.CreateEmailParams) error {
 		s.log.Errorw(ctx, msg, logger.Err(err))
 		return NewBadRequestError(msg, err)
 	}
-
 	return nil
 }
