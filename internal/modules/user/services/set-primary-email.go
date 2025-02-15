@@ -46,7 +46,10 @@ func (s svc) SetPrimaryEmail(ctx context.Context, userId, emailId string) error 
 		msg := fmt.Sprintf("not found email with id %s", emailId)
 		s.log.Errorw(ctx, msg, nil)
 		return NewNotFoundError(msg, nil)
+	}
 
+	if !nextPrimary.IsVerified {
+		return NewForbiddenError("email not verified", EmailNotVerified, nil)
 	}
 
 	currPrimary.IsPrimary = false
@@ -57,8 +60,6 @@ func (s svc) SetPrimaryEmail(ctx context.Context, userId, emailId string) error 
 		{ID: nextPrimary.ID, IsPrimary: &nextPrimary.IsPrimary},
 	}
 
-	// This isn't the best approach
-	// in the future we should use a batch update
 	for _, update := range emailsToUpdate {
 		err = s.emailRepo.Update(ctx, update)
 		if err != nil {

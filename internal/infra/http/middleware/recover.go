@@ -12,6 +12,7 @@ func WithRecoverPanic(done http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if err := recover(); err != nil {
+				fmt.Println("recover-error", err)
 				appErr := errors.NewInternalServerError(fmt.Errorf("%s", err))
 
 				w.Header().Set("Connection", "close")

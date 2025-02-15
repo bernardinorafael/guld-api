@@ -27,6 +27,8 @@ const (
 	ExpiredLink             ErrorCode = "EXPIRED_LINK"
 	InvalidDeletion         ErrorCode = "INVALID_DELETION"
 	MaxLimitResourceReached ErrorCode = "MAX_LIMIT_RESOURCE_REACHED"
+	EmailNotVerified        ErrorCode = "EMAIL_NOT_VERIFIED"
+	PhoneNotVerified        ErrorCode = "PHONE_NOT_VERIFIED"
 )
 
 type ApplicationError struct {

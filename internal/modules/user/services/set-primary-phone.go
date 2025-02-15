@@ -49,6 +49,10 @@ func (s svc) SetPrimaryPhone(ctx context.Context, userId, phoneId string) error 
 
 	}
 
+	if !nextPrimary.IsVerified {
+		return NewForbiddenError("phone not verified", PhoneNotVerified, nil)
+	}
+
 	currPrimary.IsPrimary = false
 	nextPrimary.IsPrimary = true
 
