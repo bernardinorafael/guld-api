@@ -7,7 +7,7 @@ var InsertPhoneQuery = `
 
 // TODO: Add created and updated
 var InsertEmailQuery = `
-	INSERT INTO emails (id, user_id, email, is_primary) VALUES ($1, $2, $3, true)
+	INSERT INTO emails (id, user_id, email, is_primary, is_verified) VALUES ($1, $2, $3, true, true)
 `
 
 var InsertUserQuery = `
