@@ -244,7 +244,8 @@ func (c controller) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := c.svc.Create(c.ctx, body); err != nil {
+	userId, err := c.svc.Create(c.ctx, body)
+	if err != nil {
 		if err, ok := err.(ApplicationError); ok {
 			NewHttpError(w, err)
 			return
@@ -253,7 +254,9 @@ func (c controller) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	util.WriteSuccessResponse(w, http.StatusCreated)
+	util.WriteJSONResponse(w, http.StatusCreated, map[string]any{
+		"user_id": userId,
+	})
 }
 
 func (c controller) getUser(w http.ResponseWriter, r *http.Request) {
@@ -268,10 +271,8 @@ func (c controller) getUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	util.WriteJSONResponse(w, http.StatusOK, map[string]any{
-		"user":   res.User,
-		"emails": res.Emails,
-		"phones": res.Phones,
-		"meta":   res.Meta,
+		"user": res.User,
+		"meta": res.Meta,
 	})
 }
 

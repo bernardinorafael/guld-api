@@ -11,7 +11,7 @@ import (
 	"github.com/lib/pq"
 )
 
-func (s svc) Create(ctx context.Context, dto user.UserRegisterParams) error {
+func (s svc) Create(ctx context.Context, dto user.UserRegisterParams) (userId string, err error) {
 	s.log.Info(ctx, "Process Started")
 	defer s.log.Info(ctx, "Process Finished")
 
@@ -20,7 +20,7 @@ func (s svc) Create(ctx context.Context, dto user.UserRegisterParams) error {
 		// TODO: add fields to error
 		msg := "error on init user entity"
 		s.log.Errorw(ctx, msg, logger.Err(err))
-		return NewValidationFieldError(msg, err, nil)
+		return "", NewValidationFieldError(msg, err, nil)
 	}
 
 	if err := s.userRepo.Create(ctx, newUser.Store()); err != nil {
@@ -33,10 +33,10 @@ func (s svc) Create(ctx context.Context, dto user.UserRegisterParams) error {
 			field := util.ExtractFieldFromDetail(pqErr.Detail)
 			s.log.Errorw(ctx, msg, logger.Err(err))
 			appErr.AddField(field, field+" already exists")
-			return appErr
+			return "", appErr
 		}
-		return NewBadRequestError(msg, err)
+		return "", NewBadRequestError(msg, err)
 	}
 
-	return nil
+	return newUser.ID(), nil
 }

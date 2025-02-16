@@ -12,7 +12,7 @@ func (s svc) FindByID(ctx context.Context, id string) (*user.CompleteEntity, err
 	s.log.Info(ctx, "Process Started")
 	defer s.log.Info(ctx, "Process Finished")
 
-	found, err := s.userRepo.FindByID(ctx, id)
+	found, err := s.userRepo.FindCompleteByID(ctx, id)
 	if err != nil {
 		msg := "failed to retrieve user"
 		s.log.Errorw(ctx, msg, logger.Err(err))
@@ -20,9 +20,7 @@ func (s svc) FindByID(ctx context.Context, id string) (*user.CompleteEntity, err
 	}
 
 	return &user.CompleteEntity{
-		User:   found.User,
-		Emails: found.Emails,
-		Phones: found.Phones,
-		Meta:   make([]any, 0),
+		User: found.User,
+		Meta: make([]any, 0),
 	}, nil
 }

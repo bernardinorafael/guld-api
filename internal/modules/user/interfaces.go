@@ -9,7 +9,7 @@ import (
 )
 
 type ServiceInterface interface {
-	Create(ctx context.Context, user UserRegisterParams) error
+	Create(ctx context.Context, user UserRegisterParams) (userId string, err error)
 	FindByID(ctx context.Context, userId string) (*CompleteEntity, error)
 	Delete(ctx context.Context, userId string) error
 	GetAll(ctx context.Context, params UserSearchParams) (*pagination.Paginated[Entity], error)
@@ -30,7 +30,8 @@ type ServiceInterface interface {
 
 type RepositoryInterface interface {
 	Delete(ctx context.Context, userId string) error
-	FindByID(ctx context.Context, userId string) (*CompleteEntity, error)
+	FindByID(ctx context.Context, userId string) (*Entity, error)
+	FindCompleteByID(ctx context.Context, userId string) (*CompleteEntity, error)
 	GetAll(ctx context.Context, params UserSearchParams) ([]Entity, int, error)
 	Create(ctx context.Context, user Entity) error
 	Update(ctx context.Context, input PartialEntity) error

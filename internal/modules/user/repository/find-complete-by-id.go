@@ -11,7 +11,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-func (r repo) FindByID(ctx context.Context, userId string) (*user.CompleteEntity, error) {
+func (r repo) FindCompleteByID(ctx context.Context, userId string) (*user.CompleteEntity, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
