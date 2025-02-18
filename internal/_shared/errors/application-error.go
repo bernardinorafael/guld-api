@@ -29,6 +29,7 @@ const (
 	MaxLimitResourceReached ErrorCode = "MAX_LIMIT_RESOURCE_REACHED"
 	EmailNotVerified        ErrorCode = "EMAIL_NOT_VERIFIED"
 	PhoneNotVerified        ErrorCode = "PHONE_NOT_VERIFIED"
+	Expired                 ErrorCode = "EXPIRED"
 )
 
 type ApplicationError struct {

@@ -73,7 +73,7 @@ func main() {
 	permService := permission.NewService(log, permRepo)
 	roleService := role.NewService(log, roleRepo)
 	teamService := team.NewService(log, teamRepo)
-	userService := usersvc.New(log, userRepo, emailRepo, phoneRepo)
+	userService := usersvc.New(log, userRepo, emailRepo, phoneRepo, mailer)
 	orgService := org.NewService(log, orgRepo)
 
 	// Controllers

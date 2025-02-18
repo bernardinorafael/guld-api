@@ -2,7 +2,6 @@ package user
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	. "github.com/bernardinorafael/internal/_shared/errors"
@@ -42,21 +41,79 @@ func (c controller) RegisterRoute(r *chi.Mux) {
 
 		// Users
 		r.Get("/", c.getAllUsers)
-		r.Get("/{id}", c.getUser)
 		r.Post("/", c.create)
+		r.Get("/{id}", c.getUser)
 		r.Delete("/{id}", c.delete)
 		r.Patch("/{userId}/toggle-lock", c.toggleLock)
 		// Emails
 		r.Get("/{userId}/emails", c.getEmails)
+		// TODO: Move this to a dedicated emails router
+		r.Get("/emails/{emailId}", c.getEmail)
+		r.Patch("/emails/{emailId}/validate", c.validateEmail)
 		r.Post("/{userId}/emails", c.addEmail)
 		r.Delete("/{userId}/emails/{emailId}", c.deleteEmail)
 		r.Patch("/{userId}/emails/{emailId}/set-primary", c.setPrimaryEmail)
+		r.Post("/{userId}/emails/request-validation", c.requestEmailValidation)
 		// Phones
 		r.Get("/{userId}/phones", c.getPhones)
 		r.Post("/{userId}/phones", c.addPhone)
 		r.Delete("/{userId}/phones/{phoneId}", c.deletePhone)
 		r.Patch("/{userId}/phones/{phoneId}/set-primary", c.setPrimaryPhone)
 	})
+}
+
+func (c controller) validateEmail(w http.ResponseWriter, r *http.Request) {
+	if err := c.svc.ValidateEmail(r.Context(), chi.URLParam(r, "emailId")); err != nil {
+		if err, ok := err.(ApplicationError); ok {
+			NewHttpError(w, err)
+			return
+		}
+		NewHttpError(w, NewInternalServerError(err))
+		return
+	}
+
+	util.WriteSuccessResponse(w, http.StatusOK)
+}
+
+func (c controller) getEmail(w http.ResponseWriter, r *http.Request) {
+	email, err := c.svc.FindEmail(r.Context(), chi.URLParam(r, "emailId"))
+	if err != nil {
+		if err, ok := err.(ApplicationError); ok {
+			NewHttpError(w, err)
+			return
+		}
+		NewHttpError(w, NewInternalServerError(err))
+		return
+	}
+
+	util.WriteJSONResponse(w, http.StatusOK, map[string]any{"email": email})
+}
+
+func (c controller) requestEmailValidation(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Email string `json:"email"`
+	}
+
+	if err := util.ReadRequestBody(w, r, &body); err != nil {
+		if err, ok := err.(ApplicationError); ok {
+			NewHttpError(w, err)
+			return
+		}
+		NewHttpError(w, NewInternalServerError(err))
+		return
+	}
+
+	err := c.svc.RequestEmailValidation(c.ctx, body.Email, chi.URLParam(r, "userId"))
+	if err != nil {
+		if err, ok := err.(ApplicationError); ok {
+			NewHttpError(w, err)
+			return
+		}
+		NewHttpError(w, NewInternalServerError(err))
+		return
+	}
+
+	util.WriteSuccessResponse(w, http.StatusOK)
 }
 
 func (c controller) deletePhone(w http.ResponseWriter, r *http.Request) {
@@ -103,7 +160,6 @@ func (c controller) setPrimaryEmail(w http.ResponseWriter, r *http.Request) {
 			NewHttpError(w, err)
 			return
 		}
-		fmt.Println("erro: %w", err)
 		NewHttpError(w, NewInternalServerError(err))
 		return
 	}

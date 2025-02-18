@@ -1,6 +1,7 @@
 package usersvc
 
 import (
+	"github.com/bernardinorafael/internal/mailer"
 	"github.com/bernardinorafael/internal/modules/email"
 	"github.com/bernardinorafael/internal/modules/phone"
 	"github.com/bernardinorafael/internal/modules/user"
@@ -16,6 +17,7 @@ type svc struct {
 	userRepo  user.RepositoryInterface
 	emailRepo email.RepositoryInterface
 	phoneRepo phone.RepositoryInterface
+	mailer    mailer.Mailer
 }
 
 func New(
@@ -23,11 +25,13 @@ func New(
 	userRepo user.RepositoryInterface,
 	emailRepo email.RepositoryInterface,
 	phoneRepo phone.RepositoryInterface,
+	mailer mailer.Mailer,
 ) user.ServiceInterface {
 	return &svc{
 		log:       log,
 		userRepo:  userRepo,
 		emailRepo: emailRepo,
 		phoneRepo: phoneRepo,
+		mailer:    mailer,
 	}
 }

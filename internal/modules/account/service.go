@@ -83,14 +83,14 @@ func (s svc) GetSignedInAccount(ctx context.Context) (*EntityWithUser, error) {
 	s.log.Info(ctx, "Process Started")
 	defer s.log.Info(ctx, "Process Finished")
 
-	userId, ok := ctx.Value(middleware.UserIDKey).(string)
+	accId, ok := ctx.Value(middleware.AccIDKey).(string)
 	if !ok {
 		msg := "user ID not found in context"
 		s.log.Errorw(ctx, msg, logger.Err(errors.New(msg)))
 		return nil, NewConflictError(msg, InvalidCredentials, errors.New(msg), nil)
 	}
 
-	acc, err := s.repo.FindByID(ctx, userId)
+	acc, err := s.repo.FindByID(ctx, accId)
 	if err != nil {
 		msg := "error on get account"
 		s.log.Errorw(ctx, msg, logger.Err(err))
@@ -182,16 +182,15 @@ func (s svc) Register(ctx context.Context, dto CreateAccountParams) (string, *to
 	}
 
 	go func() {
-		err := s.mailer.Send(mailer.SendParams{
+		link := fmt.Sprintf("http://localhost:3000/activate/%s", newAcc.UserID())
+		params := mailer.SendParams{
 			From:    mailer.NotificationSender,
 			To:      "rafaelferreirab2@gmail.com",
 			Subject: "Activate your account",
 			File:    "activate_account.html",
-			Data: map[string]any{
-				"Link": fmt.Sprintf("http://localhost:3000/activate/%s", newAcc.UserID()),
-			},
-		})
-		if err != nil {
+			Data:    map[string]any{"Link": link},
+		}
+		if err := s.mailer.Send(params); err != nil {
 			s.log.Errorw(ctx, "error on send email", logger.Err(err))
 		}
 	}()

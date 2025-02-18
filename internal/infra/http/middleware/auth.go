@@ -13,6 +13,7 @@ type Key string
 
 const (
 	UserIDKey Key = "user_id"
+	AccIDKey  Key = "acc_id"
 )
 
 type middleware struct {
@@ -44,7 +45,9 @@ func (m *middleware) WithAuth(done http.Handler) http.Handler {
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), UserIDKey, p.AccountID)
+		ctx := context.WithValue(r.Context(), UserIDKey, p.UserID)
+		ctx = context.WithValue(ctx, AccIDKey, p.AccountID)
+
 		done.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

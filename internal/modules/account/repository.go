@@ -27,8 +27,6 @@ func (r repo) FindByUsername(ctx context.Context, username string) (*EntityWithU
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
-	fmt.Println("username", username)
-
 	var acc Entity
 	var user user.Entity
 	var organization org.Entity
