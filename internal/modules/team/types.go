@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/bernardinorafael/internal/modules/org"
+	"github.com/bernardinorafael/internal/modules/user"
 )
 
 type Entity struct {
@@ -16,6 +17,11 @@ type Entity struct {
 	MembersCount int       `json:"members_count" db:"members_count"`
 	Created      time.Time `json:"created" db:"created"`
 	Updated      time.Time `json:"updated" db:"updated"`
+}
+
+type EntityWithMembers struct {
+	Entity
+	Members []user.Entity `json:"members"`
 }
 
 type EntityWithOrg struct {

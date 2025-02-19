@@ -89,6 +89,27 @@ func (r repo) Delete(ctx context.Context, ownerId string, teamId string) error {
 	return nil
 }
 
+func (r repo) FindAllWithMembers(ctx context.Context, orgId, ownerId string) ([]EntityWithMembers, error) {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	sql := `
+		SELECT t.*, json_agg(u.*) as members
+		FROM teams t
+		LEFT JOIN users u ON u.team_id = t.id
+		WHERE t.owner_id = $1 AND t.org_id = $2
+		GROUP BY t.id
+	`
+
+	teams := make([]EntityWithMembers, 0)
+	err := r.db.SelectContext(ctx, &teams, sql, ownerId, orgId)
+	if err != nil {
+		return nil, fmt.Errorf("error on find all teams with members: %w", err)
+	}
+
+	return teams, nil
+}
+
 func (r repo) FindAll(ctx context.Context, orgId, ownerId string) ([]Entity, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()

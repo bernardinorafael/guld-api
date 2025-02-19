@@ -7,6 +7,7 @@ type RepositoryInterface interface {
 	Delete(ctx context.Context, ownerId, teamId string) error
 	FindAll(ctx context.Context, orgId, ownerId string) ([]Entity, error)
 	FindAllWithOrg(ctx context.Context, orgId, ownerId string) ([]EntityWithOrg, error)
+	FindAllWithMembers(ctx context.Context, orgId, ownerId string) ([]EntityWithMembers, error)
 	FindBySlug(ctx context.Context, orgId, slug string) (*Entity, error)
 	FindByID(ctx context.Context, orgId, teamId string) (*Entity, error)
 }

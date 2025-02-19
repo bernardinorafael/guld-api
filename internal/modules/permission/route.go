@@ -39,44 +39,70 @@ func (c controller) RegisterRoute(r *chi.Mux) {
 	r.Route("/api/v1/permissions", func(r chi.Router) {
 		r.Use(m.WithAuth)
 
-		r.Post("/", c.createPermission)
-		r.Get("/{teamId}", c.getAllPermissions)
-		r.Delete("/{teamId}/{permissionId}", c.deletePermission)
+		r.Post("/org/{orgId}", c.createPermission)
+		r.Get("/org/{orgId}", c.getAllPermissions)
+		r.Delete("/org/{orgId}/perm/{permId}", c.deletePermission)
+		r.Put("/org/{orgId}/perm/{permId}", c.updatePermission)
 	})
 }
 
 func (c controller) deletePermission(w http.ResponseWriter, r *http.Request) {
 	err := c.svc.Delete(
 		c.ctx,
-		chi.URLParam(r, "teamId"),
-		chi.URLParam(r, "permissionId"),
+		chi.URLParam(r, "orgId"),
+		chi.URLParam(r, "permId"),
 	)
 	if err != nil {
-		errors.NewHttpError(w, errors.NewBadRequestError(
-			"failed to delete permission",
-			err,
-		))
+		if err, ok := err.(errors.ApplicationError); ok {
+			errors.NewHttpError(w, err)
+			return
+		}
+		errors.NewHttpError(w, errors.NewInternalServerError(err))
 		return
 	}
 
 	WriteSuccessResponse(w, http.StatusOK)
 }
 
+func (c controller) updatePermission(w http.ResponseWriter, r *http.Request) {
+	var body UpdatePermissionParams
+	body.OrgID = chi.URLParam(r, "orgId")
+	body.ID = chi.URLParam(r, "permId")
+
+	if err := ReadRequestBody(w, r, &body); err != nil {
+		if err, ok := err.(errors.ApplicationError); ok {
+			errors.NewHttpError(w, err)
+			return
+		}
+		errors.NewHttpError(w, errors.NewInternalServerError(err))
+		return
+	}
+
+	if err := c.svc.Update(c.ctx, body); err != nil {
+		if err, ok := err.(errors.ApplicationError); ok {
+			errors.NewHttpError(w, err)
+			return
+		}
+	}
+
+	WriteSuccessResponse(w, http.StatusOK)
+}
+
 func (c controller) getAllPermissions(w http.ResponseWriter, r *http.Request) {
-	var p PermissionSearchParams
-	var teamId = chi.URLParam(r, "teamId")
+	var body PermissionSearchParams
 
-	p.Query = ReadQueryString(r.URL.Query(), "q", "")
-	p.Limit = ReadQueryInt(r.URL.Query(), "limit", 15)
-	p.Page = ReadQueryInt(r.URL.Query(), "page", 1)
-	p.Sort = ReadQueryString(r.URL.Query(), "sort", "created")
+	body.Query = ReadQueryString(r.URL.Query(), "q", "")
+	body.Limit = ReadQueryInt(r.URL.Query(), "limit", 15)
+	body.Page = ReadQueryInt(r.URL.Query(), "page", 1)
+	body.Sort = ReadQueryString(r.URL.Query(), "sort", "created")
 
-	res, err := c.svc.GetAll(c.ctx, teamId, p)
+	res, err := c.svc.GetAll(c.ctx, chi.URLParam(r, "orgId"), body)
 	if err != nil {
-		errors.NewHttpError(w, errors.NewBadRequestError(
-			"failed to get all permissions",
-			err,
-		))
+		if err, ok := err.(errors.ApplicationError); ok {
+			errors.NewHttpError(w, err)
+			return
+		}
+		errors.NewHttpError(w, errors.NewInternalServerError(err))
 		return
 	}
 
@@ -88,20 +114,23 @@ func (c controller) getAllPermissions(w http.ResponseWriter, r *http.Request) {
 
 func (c controller) createPermission(w http.ResponseWriter, r *http.Request) {
 	var body CreatePermissionParams
+	body.OrgID = chi.URLParam(r, "orgId")
 
 	if err := ReadRequestBody(w, r, &body); err != nil {
-		errors.NewHttpError(w, errors.NewBadRequestError(
-			"failed to create permission",
-			err,
-		))
+		if err, ok := err.(errors.ApplicationError); ok {
+			errors.NewHttpError(w, err)
+			return
+		}
+		errors.NewHttpError(w, errors.NewInternalServerError(err))
 		return
 	}
 
 	if err := c.svc.Create(c.ctx, body); err != nil {
-		errors.NewHttpError(w, errors.NewBadRequestError(
-			"failed to create permission",
-			err,
-		))
+		if err, ok := err.(errors.ApplicationError); ok {
+			errors.NewHttpError(w, err)
+			return
+		}
+		errors.NewHttpError(w, errors.NewInternalServerError(err))
 		return
 	}
 

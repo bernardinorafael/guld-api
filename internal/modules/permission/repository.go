@@ -2,6 +2,7 @@ package permission
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"strings"
 	"time"
@@ -15,17 +16,61 @@ func NewRepository(db *sqlx.DB) RepositoryInterface {
 	return &repo{db}
 }
 
-func (r *repo) Delete(ctx context.Context, teamId string, permissionId string) error {
-	_, err := r.db.ExecContext(
+func (r *repo) GetByID(ctx context.Context, orgId, permId string) (*Entity, error) {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	var permission Entity
+	err := r.db.GetContext(
 		ctx,
-		`
-		DELETE from permissions WHERE team_id = $1 AND id = $2
-		`,
-		teamId,
-		permissionId,
+		&permission,
+		"SELECT * FROM permissions WHERE org_id = $1 AND id = $2",
+		orgId,
+		permId,
 	)
 	if err != nil {
-		return err
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to get permission: %w", err)
+	}
+
+	return &permission, nil
+}
+
+func (r *repo) Update(ctx context.Context, permission Entity) error {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	permission.Updated = time.Now()
+	_, err := r.db.NamedExecContext(
+		ctx,
+		`
+		UPDATE permissions
+		SET
+			name = :name,
+			description = :description,
+			key = :key,
+			updated = :updated
+		WHERE org_id = :org_id AND id = :id
+		`,
+		permission,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update permission: %w", err)
+	}
+
+	return nil
+}
+func (r *repo) Delete(ctx context.Context, orgId string, permId string) error {
+	_, err := r.db.ExecContext(
+		ctx,
+		`DELETE from permissions WHERE org_id = $1 AND id = $2`,
+		orgId,
+		permId,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to delete permission: %w", err)
 	}
 
 	return nil
@@ -38,19 +83,35 @@ func (r repo) Insert(ctx context.Context, permission Entity) error {
 	_, err := r.db.NamedExecContext(
 		ctx,
 		`
-		INSERT INTO permissions (team_id, name, key, description)
-		VALUES (:team_id, :name, :key, :description)
+		INSERT INTO permissions (
+			id,
+			org_id,
+			name,
+			key,
+			description,
+			created,
+			updated
+		)
+		VALUES (
+			:id,
+			:org_id,
+			:name,
+			:key,
+			:description,
+			:created,
+			:updated
+		)
 		`,
 		permission,
 	)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to insert permission: %w", err)
 	}
 
 	return nil
 }
 
-func (r repo) GetAll(ctx context.Context, teamId string, p PermissionSearchParams) ([]Entity, int, error) {
+func (r repo) GetAll(ctx context.Context, orgId string, p PermissionSearchParams) ([]Entity, int, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
@@ -78,7 +139,7 @@ func (r repo) GetAll(ctx context.Context, teamId string, p PermissionSearchParam
 				OR p.description ILIKE '%%' || $3 || '%%'
 				OR p.key ILIKE '%%' || $3 || '%%'
 		)
-		AND team_id = $4
+		AND org_id = $4
 		ORDER BY %s %s
 		LIMIT $1 OFFSET $2
 	`, sort, direction)
@@ -86,7 +147,7 @@ func (r repo) GetAll(ctx context.Context, teamId string, p PermissionSearchParam
 	permissions := make([]Entity, 0)
 	skip := (p.Page - 1) * p.Limit
 
-	err = r.db.SelectContext(ctx, &permissions, sql, p.Limit, skip, p.Query, teamId)
+	err = r.db.SelectContext(ctx, &permissions, sql, p.Limit, skip, p.Query, orgId)
 	if err != nil {
 		return nil, -1, err
 	}
