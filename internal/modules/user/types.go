@@ -34,7 +34,7 @@ type Entity struct {
 
 type CompleteEntity struct {
 	User   Entity                  `json:"user" db:"user"`
-	Emails []email.AdditionalEmail `json:"emails" db:"emails"`
+	Emails []email.Entity          `json:"emails" db:"emails"`
 	Phones []phone.AdditionalPhone `json:"phones" db:"phones"`
 	Meta   []any                   `json:"meta"`
 }

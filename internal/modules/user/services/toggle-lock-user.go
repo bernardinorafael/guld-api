@@ -9,9 +9,6 @@ import (
 )
 
 func (s svc) ToggleLock(ctx context.Context, userId string) error {
-	s.log.Info(ctx, "Process Started")
-	defer s.log.Info(ctx, "Process Finished")
-
 	foundUser, err := s.userRepo.FindCompleteByID(ctx, userId)
 	if err != nil {
 		msg := "failed to retrieve user"
@@ -42,5 +39,4 @@ func (s svc) ToggleLock(ctx context.Context, userId string) error {
 	}
 
 	return nil
-
 }

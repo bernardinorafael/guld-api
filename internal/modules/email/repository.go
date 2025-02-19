@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -17,12 +16,12 @@ func NewRepository(db *sqlx.DB) RepositoryInterface {
 	return &repo{db}
 }
 
-func (r *repo) FindByEmail(ctx context.Context, email string) (*AdditionalEmail, error) {
+func (r repo) FindValidationByEmail(ctx context.Context, emailId string) (*Validation, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
-	var addr AdditionalEmail
-	err := r.db.GetContext(ctx, &addr, "SELECT * FROM emails WHERE email = $1", email)
+	var v Validation
+	err := r.db.GetContext(ctx, &v, "SELECT * FROM email_validations WHERE email_id = $1", emailId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -30,14 +29,77 @@ func (r *repo) FindByEmail(ctx context.Context, email string) (*AdditionalEmail,
 		return nil, err
 	}
 
-	return &addr, nil
+	return &v, nil
 }
 
-func (r repo) Insert(ctx context.Context, email AdditionalEmail) error {
+func (r repo) UpdateValidation(ctx context.Context, v Validation) error {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
-	query := `
+	sql := `
+		UPDATE email_validations
+		SET
+			attempts = :attempts,
+			is_consumed = :is_consumed,
+			is_valid = :is_valid
+		WHERE id = :id
+	`
+
+	if _, err := r.db.NamedExecContext(ctx, sql, v); err != nil {
+		return fmt.Errorf("failed to update email validation: %w", err)
+	}
+
+	return nil
+}
+
+func (r repo) InsertValidation(ctx context.Context, v Validation) error {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	sql := `
+		INSERT INTO email_validations (
+			id,
+			email_id,
+			is_consumed,
+			created,
+			expires
+		) VALUES (
+			:id,
+			:email_id,
+			:is_consumed,
+			:created,
+			:expires
+		)
+	`
+
+	if _, err := r.db.NamedExecContext(ctx, sql, v); err != nil {
+		return fmt.Errorf("failed to insert email validation: %w", err)
+	}
+
+	return nil
+}
+
+func (r repo) FindByEmail(ctx context.Context, email string) (*Entity, error) {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	var entity Entity
+	err := r.db.GetContext(ctx, &entity, "SELECT * FROM emails WHERE email = $1", email)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to find email by email: %w", err)
+	}
+
+	return &entity, nil
+}
+
+func (r repo) Insert(ctx context.Context, email Entity) error {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	sql := `
 		INSERT INTO emails (
 			id,
 			user_id,
@@ -56,9 +118,9 @@ func (r repo) Insert(ctx context.Context, email AdditionalEmail) error {
 			:updated
 		)
 	`
-	_, err := r.db.NamedExecContext(ctx, query, email)
+	_, err := r.db.NamedExecContext(ctx, sql, email)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to insert email: %w", err)
 	}
 
 	return nil
@@ -75,17 +137,17 @@ func (r repo) Delete(ctx context.Context, userId, emailId string) error {
 		userId,
 	)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to delete email: %w", err)
 	}
 
 	return nil
 }
 
-func (r repo) FindAllByUser(ctx context.Context, userId string) ([]AdditionalEmail, error) {
+func (r repo) FindAllByUser(ctx context.Context, userId string) ([]Entity, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
-	var emails []AdditionalEmail
+	var emails []Entity
 	err := r.db.SelectContext(
 		ctx,
 		&emails,
@@ -93,17 +155,17 @@ func (r repo) FindAllByUser(ctx context.Context, userId string) ([]AdditionalEma
 		userId,
 	)
 	if err != nil {
-		return emails, err
+		return nil, fmt.Errorf("failed to find all emails by user: %w", err)
 	}
 
 	return emails, nil
 }
 
-func (r repo) FindByID(ctx context.Context, emailId string) (*AdditionalEmail, error) {
+func (r repo) FindByID(ctx context.Context, emailId string) (*Entity, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
-	var email AdditionalEmail
+	var email Entity
 	err := r.db.GetContext(ctx, &email, "SELECT * FROM emails WHERE id = $1", emailId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -115,34 +177,22 @@ func (r repo) FindByID(ctx context.Context, emailId string) (*AdditionalEmail, e
 	return &email, nil
 }
 
-func (r repo) Update(ctx context.Context, email EmailUpdateParams) error {
+// Update updates only 3 fields: is_primary, is_verified and updated
+func (r repo) Update(ctx context.Context, entity Entity) error {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
-	params := map[string]any{"id": email.ID}
-	clauses := []string{}
-
-	if email.IsPrimary != nil {
-		clauses = append(clauses, "is_primary = :is_primary")
-		params["is_primary"] = email.IsPrimary
-	}
-
-	if email.IsVerified != nil {
-		clauses = append(clauses, "is_verified = :is_verified")
-		params["is_verified"] = email.IsVerified
-	}
-
-	_, err := r.db.NamedExecContext(
-		ctx,
-		fmt.Sprintf(
-			`UPDATE emails SET %s, updated = now() WHERE id = :id`,
-			strings.Join(clauses, ", "),
-		),
-		params,
-	)
-
-	if err != nil {
-		return err
+	entity.Updated = time.Now()
+	sql := `
+		UPDATE emails
+		SET
+			is_primary = :is_primary,
+			is_verified = :is_verified,
+			updated = :updated
+		WHERE id = :id
+	`
+	if _, err := r.db.NamedExecContext(ctx, sql, entity); err != nil {
+		return fmt.Errorf("failed to update email: %w", err)
 	}
 
 	return nil

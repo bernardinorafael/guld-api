@@ -12,7 +12,7 @@ import (
 
 /*
 * Implementation details
-
+*
 * Initially there were methods where we went to the database multiple times
 * to fetch data like (previous email and next one to be updated)
 * however since there is a limited number of emails that a user can have
@@ -20,18 +20,13 @@ import (
  */
 
 func (s svc) SetPrimaryEmail(ctx context.Context, userId, emailId string) error {
-	s.log.Info(ctx, "Process Started")
-	defer s.log.Info(ctx, "Process Finished")
-
-	emails, err := s.emailRepo.FindAllByUser(ctx, userId)
+	emails, err := s.emailService.FindAllByUser(ctx, userId)
 	if err != nil {
-		msg := "error on find all emails"
-		s.log.Errorw(ctx, msg, logger.Err(err))
-		return NewBadRequestError(msg, err)
+		return err
 	}
 
-	var currPrimary *email.AdditionalEmail
-	var nextPrimary *email.AdditionalEmail
+	var currPrimary *email.Entity
+	var nextPrimary *email.Entity
 
 	for _, v := range emails {
 		if v.IsPrimary {
@@ -52,20 +47,15 @@ func (s svc) SetPrimaryEmail(ctx context.Context, userId, emailId string) error 
 		return NewForbiddenError("email not verified", EmailNotVerified, nil)
 	}
 
-	currPrimary.IsPrimary = false
-	nextPrimary.IsPrimary = true
-
-	emailsToUpdate := []email.EmailUpdateParams{
-		{ID: currPrimary.ID, IsPrimary: &currPrimary.IsPrimary},
-		{ID: nextPrimary.ID, IsPrimary: &nextPrimary.IsPrimary},
+	emailsToUpdate := []email.Entity{
+		{ID: currPrimary.ID, IsPrimary: false, IsVerified: currPrimary.IsVerified},
+		{ID: nextPrimary.ID, IsPrimary: true, IsVerified: nextPrimary.IsVerified},
 	}
 
-	for _, update := range emailsToUpdate {
-		err = s.emailRepo.Update(ctx, update)
+	for _, v := range emailsToUpdate {
+		_, err = s.emailService.Update(ctx, v)
 		if err != nil {
-			msg := fmt.Sprintf("error on updating email with id %s", update.ID)
-			s.log.Errorw(ctx, msg, logger.Err(err))
-			return NewBadRequestError(msg, err)
+			return err
 		}
 	}
 

@@ -91,8 +91,6 @@ func (r repo) FindByUserID(ctx context.Context, userId string) (*Entity, error) 
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
-	fmt.Println("userId", userId)
-
 	var acc Entity
 	err := r.db.GetContext(
 		ctx,

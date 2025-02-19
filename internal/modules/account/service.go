@@ -44,9 +44,6 @@ func NewService(
 }
 
 func (s svc) ActivateAccount(ctx context.Context, userId string) error {
-	s.log.Info(ctx, "Process Started")
-	defer s.log.Info(ctx, "Process Finished")
-
 	account, err := s.repo.FindByUserID(ctx, userId)
 	if err != nil {
 		s.log.Errorw(ctx, "error on get account by id", logger.Err(err))
@@ -80,9 +77,6 @@ func (s svc) ActivateAccount(ctx context.Context, userId string) error {
 }
 
 func (s svc) GetSignedInAccount(ctx context.Context) (*EntityWithUser, error) {
-	s.log.Info(ctx, "Process Started")
-	defer s.log.Info(ctx, "Process Finished")
-
 	accId, ok := ctx.Value(middleware.AccIDKey).(string)
 	if !ok {
 		msg := "user ID not found in context"
@@ -101,9 +95,6 @@ func (s svc) GetSignedInAccount(ctx context.Context) (*EntityWithUser, error) {
 }
 
 func (s svc) Login(ctx context.Context, username string, password string) (string, *token.AccountClaims, error) {
-	s.log.Info(ctx, "Process Started")
-	defer s.log.Info(ctx, "Process Finished")
-
 	acc, err := s.repo.FindByUsername(ctx, username)
 	if err != nil {
 		s.log.Errorw(ctx, "error on get account by username", logger.Err(err))
@@ -141,9 +132,6 @@ func (s svc) Login(ctx context.Context, username string, password string) (strin
 }
 
 func (s svc) Register(ctx context.Context, dto CreateAccountParams) (string, *token.AccountClaims, error) {
-	s.log.Info(ctx, "Process Started")
-	defer s.log.Info(ctx, "Process Finished")
-
 	newUser, err := user.NewUser(dto.FullName, dto.Username, dto.PhoneNumber, dto.EmailAddress)
 	if err != nil {
 		msg := "error on create user"

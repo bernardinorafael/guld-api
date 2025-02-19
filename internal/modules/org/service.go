@@ -17,9 +17,6 @@ func NewService(log logger.Logger, repo RepositoryInterface) ServiceInterface {
 }
 
 func (s svc) CreateOrg(ctx context.Context, name, ownerId string) error {
-	s.log.Info(ctx, "Process Started")
-	defer s.log.Info(ctx, "Process Finished")
-
 	org, err := NewOrg(name, ownerId)
 	if err != nil {
 		msg := "failed to validate org entity"
@@ -37,9 +34,6 @@ func (s svc) CreateOrg(ctx context.Context, name, ownerId string) error {
 }
 
 func (s svc) GetOrgByID(ctx context.Context, orgId string) (*EntityWithOwner, error) {
-	s.log.Info(ctx, "Process Started")
-	defer s.log.Info(ctx, "Process Finished")
-
 	org, err := s.repo.FindByID(ctx, orgId)
 	if err != nil {
 		msg := "failed to retrieve org"
@@ -51,9 +45,6 @@ func (s svc) GetOrgByID(ctx context.Context, orgId string) (*EntityWithOwner, er
 }
 
 func (s svc) GetOrgBySlug(ctx context.Context, slug string) (*EntityWithOwner, error) {
-	s.log.Info(ctx, "Process Started")
-	defer s.log.Info(ctx, "Process Finished")
-
 	org, err := s.repo.FindBySlug(ctx, slug)
 	if err != nil {
 		msg := "failed to retrieve org by slug"

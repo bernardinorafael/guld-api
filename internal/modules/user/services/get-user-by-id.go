@@ -9,9 +9,6 @@ import (
 )
 
 func (s svc) FindByID(ctx context.Context, id string) (*user.CompleteEntity, error) {
-	s.log.Info(ctx, "Process Started")
-	defer s.log.Info(ctx, "Process Finished")
-
 	found, err := s.userRepo.FindCompleteByID(ctx, id)
 	if err != nil {
 		msg := "failed to retrieve user"

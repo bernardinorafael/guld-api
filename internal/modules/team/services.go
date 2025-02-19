@@ -22,9 +22,6 @@ func NewService(log logger.Logger, repo RepositoryInterface) ServiceInterface {
 }
 
 func (s *svc) GetByID(ctx context.Context, orgId string, teamId string) (*Entity, error) {
-	s.log.Info(ctx, "Process Started")
-	defer s.log.Info(ctx, "Process Finished")
-
 	team, err := s.repo.FindByID(ctx, orgId, teamId)
 	if err != nil {
 		msg := "failed to get team by id"
@@ -41,9 +38,6 @@ func (s *svc) GetByID(ctx context.Context, orgId string, teamId string) (*Entity
 }
 
 func (s svc) GetBySlug(ctx context.Context, orgId string, slug string) (*Entity, error) {
-	s.log.Info(ctx, "Process Started")
-	defer s.log.Info(ctx, "Process Finished")
-
 	team, err := s.repo.FindBySlug(ctx, orgId, slug)
 	if err != nil {
 		msg := "failed to get team by slug"
@@ -60,9 +54,6 @@ func (s svc) GetBySlug(ctx context.Context, orgId string, slug string) (*Entity,
 }
 
 func (s svc) Create(ctx context.Context, dto CreateTeamParams) error {
-	s.log.Info(ctx, "Process Started")
-	defer s.log.Info(ctx, "Process Finished")
-
 	newTeam, err := NewTeam(dto.Name, dto.OwnerID, dto.OrgID)
 	if err != nil {
 		msg := "failed to create team"
@@ -82,9 +73,6 @@ func (s svc) Create(ctx context.Context, dto CreateTeamParams) error {
 }
 
 func (s svc) GetAll(ctx context.Context, ownerId, orgId string) ([]Entity, error) {
-	s.log.Info(ctx, "Process Started")
-	defer s.log.Info(ctx, "Process Finished")
-
 	teams, err := s.repo.FindAll(ctx, ownerId, orgId)
 	if err != nil {
 		msg := "failed to get teams"

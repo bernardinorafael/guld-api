@@ -11,9 +11,6 @@ import (
 )
 
 func (s svc) FindAllPhones(ctx context.Context, userId string) ([]phone.AdditionalPhone, error) {
-	s.log.Info(ctx, "Process Started")
-	defer s.log.Info(ctx, "Process Finished")
-
 	user, err := s.userRepo.FindByID(ctx, userId)
 	if err != nil {
 		msg := "error on retrieve user by id"

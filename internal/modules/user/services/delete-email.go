@@ -4,48 +4,29 @@ import (
 	"context"
 
 	. "github.com/bernardinorafael/internal/_shared/errors"
-	"github.com/bernardinorafael/pkg/logger"
 )
 
 func (s svc) DeleteEmail(ctx context.Context, userId, emailId string) error {
-	s.log.Info(ctx, "Process Started")
-	defer s.log.Info(ctx, "Process Finished")
-
-	allEmails, err := s.emailRepo.FindAllByUser(ctx, userId)
+	emails, err := s.emailService.FindAllByUser(ctx, userId)
 	if err != nil {
-		msg := "error on find all emails"
-		s.log.Errorw(ctx, msg, logger.Err(err))
-		return NewBadRequestError(msg, err)
+		return err
 	}
 
-	if len(allEmails) == 1 {
-		msg := "cannot delete last email"
-		s.log.Errorw(ctx, msg, logger.Err(err))
-		return NewForbiddenError(msg, InvalidDeletion, err)
+	if len(emails) == 1 {
+		return NewForbiddenError("cannot delete last user email", InvalidDeletion, err)
 	}
 
-	email, err := s.emailRepo.FindByID(ctx, emailId)
+	email, err := s.emailService.FindByID(ctx, emailId)
 	if err != nil {
-		msg := "error on find email"
-		s.log.Errorw(ctx, msg, logger.Err(err))
-		return NewBadRequestError(msg, err)
-	}
-	if email == nil {
-		msg := "email not found"
-		s.log.Errorw(ctx, msg, logger.Err(err))
-		return NewBadRequestError(msg, err)
+		return err
 	}
 
 	if email.IsPrimary {
-		msg := "primary email cannot be deleted"
-		s.log.Errorw(ctx, msg, logger.Err(err))
-		return NewForbiddenError(msg, InvalidDeletion, err)
+		return NewForbiddenError("primary email cannot be deleted", InvalidDeletion, err)
 	}
 
-	if err := s.emailRepo.Delete(ctx, userId, emailId); err != nil {
-		msg := "error on delete email"
-		s.log.Errorw(ctx, msg, logger.Err(err))
-		return NewBadRequestError(msg, err)
+	if err := s.emailService.Delete(ctx, userId, emailId); err != nil {
+		return err
 	}
 
 	return nil

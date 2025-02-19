@@ -5,10 +5,27 @@ import (
 )
 
 type RepositoryInterface interface {
-	Insert(ctx context.Context, email AdditionalEmail) error
-	Update(ctx context.Context, email EmailUpdateParams) error
-	FindByID(ctx context.Context, emailId string) (*AdditionalEmail, error)
-	FindByEmail(ctx context.Context, email string) (*AdditionalEmail, error)
-	FindAllByUser(ctx context.Context, userId string) ([]AdditionalEmail, error)
+	Insert(ctx context.Context, entity Entity) error
+	Update(ctx context.Context, entity Entity) error
+	FindByID(ctx context.Context, emailId string) (*Entity, error)
+	FindByEmail(ctx context.Context, entity string) (*Entity, error)
+	FindAllByUser(ctx context.Context, userId string) ([]Entity, error)
 	Delete(ctx context.Context, userId, emailId string) error
+
+	InsertValidation(ctx context.Context, v Validation) error
+	UpdateValidation(ctx context.Context, v Validation) error
+	FindValidationByEmail(ctx context.Context, emailId string) (*Validation, error)
+}
+
+type ServiceInterface interface {
+	Create(ctx context.Context, dto CreateParams) (*Entity, error)
+	FindAllByUser(ctx context.Context, userId string) ([]Entity, error)
+	FindByEmail(ctx context.Context, email string) (*Entity, error)
+	FindByID(ctx context.Context, emailId string) (*Entity, error)
+	Update(ctx context.Context, entity Entity) (*Entity, error)
+	Delete(ctx context.Context, userId, emailId string) error
+
+	InsertValidation(ctx context.Context, v Validation) error
+	UpdateValidation(ctx context.Context, v Validation) error
+	FindValidationByEmail(ctx context.Context, emailId string) (*Validation, error)
 }

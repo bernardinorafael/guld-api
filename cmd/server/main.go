@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/bernardinorafael/internal/_shared/envconf"
 	"github.com/bernardinorafael/internal/_shared/loggerconf"
@@ -56,7 +57,12 @@ func main() {
 	defer db.Close()
 	log.Info(ctx, "Database connected")
 
-	mailer := mailer.New(ctx, log, env.ResendAPIKey)
+	mailer := mailer.New(ctx, log, mailer.Config{
+		APIKey:           env.ResendAPIKey,
+		MaxRetries:       3,
+		RetryDelay:       time.Second * 2,
+		OperationTimeout: time.Second * 10,
+	})
 
 	// Repositories
 	userRepo := userrepo.New(db.GetDB())
@@ -69,11 +75,13 @@ func main() {
 	orgRepo := org.NewRepo(db.GetDB())
 
 	// Services
+	emailService := email.NewService(log, emailRepo)
+
 	accService := account.NewService(ctx, log, accRepo, mailer, env.JWTSecret)
 	permService := permission.NewService(log, permRepo)
 	roleService := role.NewService(log, roleRepo)
 	teamService := team.NewService(log, teamRepo)
-	userService := usersvc.New(log, userRepo, emailRepo, phoneRepo, mailer)
+	userService := usersvc.New(log, userRepo, emailService, phoneRepo, mailer)
 	orgService := org.NewService(log, orgRepo)
 
 	// Controllers

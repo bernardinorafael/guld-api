@@ -11,9 +11,6 @@ import (
 )
 
 func (s svc) AddPhone(ctx context.Context, dto phone.CreatePhoneParams) error {
-	s.log.Info(ctx, "Process Started")
-	defer s.log.Info(ctx, "Process Finished")
-
 	allPhones, err := s.phoneRepo.FindAllByUser(ctx, dto.UserID)
 	if err != nil {
 		msg := "error on find all phones by user"

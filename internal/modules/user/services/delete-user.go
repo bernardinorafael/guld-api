@@ -8,9 +8,6 @@ import (
 )
 
 func (s svc) Delete(ctx context.Context, userId string) error {
-	s.log.Info(ctx, "Process Started")
-	defer s.log.Info(ctx, "Process Finished")
-
 	_, err := s.userRepo.FindByID(ctx, userId)
 	if err != nil {
 		msg := "user not found"

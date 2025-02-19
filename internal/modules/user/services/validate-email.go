@@ -2,40 +2,45 @@ package usersvc
 
 import (
 	"context"
+	"time"
 
 	. "github.com/bernardinorafael/internal/_shared/errors"
+	"github.com/bernardinorafael/internal/modules/email"
 	emails "github.com/bernardinorafael/internal/modules/email"
-	"github.com/bernardinorafael/pkg/logger"
 )
 
 func (s svc) ValidateEmail(ctx context.Context, emailId string) error {
-	s.log.Info(ctx, "Process Started")
-	defer s.log.Info(ctx, "Process Finished")
-
-	emailAddr, err := s.emailRepo.FindByID(ctx, emailId)
+	emailAddr, err := s.emailService.FindByID(ctx, emailId)
 	if err != nil {
-		s.log.Errorw(ctx, "error on get email", logger.Err(err))
-		return NewBadRequestError("error on get email", err)
-	}
-	if emailAddr == nil {
-		s.log.Errorw(ctx, "email not found", logger.Err(err))
-		return NewBadRequestError("email not found", err)
+		return err
 	}
 
 	if emailAddr.IsPrimary || emailAddr.IsVerified {
+		s.log.Errorw(ctx, "invalid status for activating email")
 		return NewForbiddenError("invalid status for activating", BadRequest, nil)
 	}
 
 	isVerified := true
-	err = s.emailRepo.Update(
-		ctx,
-		emails.EmailUpdateParams{
-			ID:         emailAddr.ID,
-			IsVerified: &isVerified,
-		},
-	)
+	update := emails.Entity{ID: emailAddr.ID, IsVerified: isVerified}
+	_, err = s.emailService.Update(ctx, update)
 	if err != nil {
-		return NewBadRequestError("failed to update email", err)
+		return err
+	}
+
+	validation, err := s.emailService.FindValidationByEmail(ctx, emailAddr.ID)
+	if err != nil {
+		return err
+	}
+
+	if validation.Expires.Before(time.Now()) {
+		s.log.Error(ctx, "email validation expired")
+		return NewForbiddenError("email validation expired", ExpiredLink, nil)
+	}
+
+	toUpdate := email.Validation{ID: validation.ID, IsConsumed: true}
+	err = s.emailService.UpdateValidation(ctx, toUpdate)
+	if err != nil {
+		return NewBadRequestError("failed to update email validation", err)
 	}
 
 	return nil

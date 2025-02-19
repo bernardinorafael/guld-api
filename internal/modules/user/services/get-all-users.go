@@ -12,9 +12,6 @@ import (
 )
 
 func (s svc) GetAll(ctx context.Context, dto user.UserSearchParams) (*pagination.Paginated[user.Entity], error) {
-	s.log.Info(ctx, "Process Started")
-	defer s.log.Info(ctx, "Process Finished")
-
 	safeSort := map[string]bool{
 		"full_name": true,
 		"username":  true,

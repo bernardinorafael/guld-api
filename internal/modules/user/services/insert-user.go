@@ -12,9 +12,6 @@ import (
 )
 
 func (s svc) Create(ctx context.Context, dto user.UserRegisterParams) (userId string, err error) {
-	s.log.Info(ctx, "Process Started")
-	defer s.log.Info(ctx, "Process Finished")
-
 	newUser, err := user.NewUser(dto.FullName, dto.Username, dto.PhoneNumber, dto.EmailAddress)
 	if err != nil {
 		// TODO: add fields to error

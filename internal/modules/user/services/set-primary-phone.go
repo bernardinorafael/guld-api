@@ -20,9 +20,6 @@ import (
  */
 
 func (s svc) SetPrimaryPhone(ctx context.Context, userId, phoneId string) error {
-	s.log.Info(ctx, "Process Started")
-	defer s.log.Info(ctx, "Process Finished")
-
 	phones, err := s.phoneRepo.FindAllByUser(ctx, userId)
 	if err != nil {
 		msg := "error on find all phones"

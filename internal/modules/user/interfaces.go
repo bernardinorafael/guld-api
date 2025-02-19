@@ -16,11 +16,11 @@ type ServiceInterface interface {
 	ToggleLock(ctx context.Context, userId string) error
 
 	// Emails methods
-	AddEmail(ctx context.Context, dto CreateEmailParams) error
-	FindAllEmails(ctx context.Context, userId string) ([]email.AdditionalEmail, error)
+	AddEmail(ctx context.Context, dto email.CreateParams) error
+	FindAllEmails(ctx context.Context, userId string) ([]email.Entity, error)
 	DeleteEmail(ctx context.Context, userId, emailId string) error
 	SetPrimaryEmail(ctx context.Context, userId, emailId string) error
-	FindEmail(ctx context.Context, email string) (*email.AdditionalEmail, error)
+	FindEmail(ctx context.Context, email string) (*email.Entity, error)
 	RequestEmailValidation(ctx context.Context, email, userId string) error
 	ValidateEmail(ctx context.Context, emailId string) error
 

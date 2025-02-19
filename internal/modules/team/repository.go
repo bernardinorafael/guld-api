@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/bernardinorafael/internal/_shared/util"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -64,8 +63,6 @@ func (r *repo) FindBySlug(ctx context.Context, orgId, slug string) (*Entity, err
 func (r repo) Insert(ctx context.Context, team Entity) error {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
-
-	util.PrintJSON(team)
 
 	_, err := r.db.NamedExecContext(ctx, InsertTeamQuery, team)
 	if err != nil {

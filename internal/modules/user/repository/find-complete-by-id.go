@@ -17,7 +17,7 @@ func (r repo) FindCompleteByID(ctx context.Context, userId string) (*user.Comple
 
 	usr := user.CompleteEntity{
 		User:   user.Entity{},
-		Emails: []email.AdditionalEmail{},
+		Emails: []email.Entity{},
 		Phones: []phone.AdditionalPhone{},
 	}
 

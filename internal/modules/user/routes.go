@@ -7,6 +7,7 @@ import (
 	. "github.com/bernardinorafael/internal/_shared/errors"
 	"github.com/bernardinorafael/internal/_shared/util"
 	"github.com/bernardinorafael/internal/infra/http/middleware"
+	"github.com/bernardinorafael/internal/modules/email"
 	"github.com/bernardinorafael/internal/modules/phone"
 	"github.com/bernardinorafael/pkg/logger"
 	"github.com/go-chi/chi"
@@ -238,7 +239,7 @@ func (c controller) getEmails(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c controller) addEmail(w http.ResponseWriter, r *http.Request) {
-	var body CreateEmailParams
+	var body email.CreateParams
 	body.UserID = chi.URLParam(r, "userId")
 
 	if err := util.ReadRequestBody(w, r, &body); err != nil {
