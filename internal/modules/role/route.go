@@ -5,8 +5,7 @@ import (
 	"net/http"
 
 	"github.com/bernardinorafael/internal/_shared/errors"
-	. "github.com/bernardinorafael/internal/_shared/util"
-
+	"github.com/bernardinorafael/internal/_shared/util"
 	"github.com/bernardinorafael/internal/infra/http/middleware"
 	"github.com/bernardinorafael/pkg/logger"
 	"github.com/go-chi/chi"
@@ -39,96 +38,51 @@ func (c controller) RegisterRoute(r *chi.Mux) {
 	r.Route("/api/v1/roles", func(r chi.Router) {
 		r.Use(m.WithAuth)
 
-		r.Post("/", c.createRole)
-		r.Post("/{roleId}", c.createRolePermission)
-		r.Get("/{teamId}", c.getAllRoles)
-		r.Get("/{teamId}/{roleId}", c.getRole)
+		r.Post("/org/{orgId}", c.createRole)
+		r.Get("/org/{orgId}", c.getRoles)
 	})
 }
 
-func (c controller) createRolePermission(w http.ResponseWriter, r *http.Request) {
-	var body struct {
-		Permissions []string `json:"permissions"`
-	}
-
-	if err := ReadRequestBody(w, r, &body); err != nil {
-		errors.NewHttpError(w, errors.NewBadRequestError(
-			"failed to create role permission",
-			err,
-		))
-		return
-	}
-
-	err := c.svc.MakeRolePermissions(
-		c.ctx,
-		chi.URLParam(r, "roleId"),
-		body.Permissions,
-	)
+func (c controller) getRoles(w http.ResponseWriter, r *http.Request) {
+	roles, err := c.svc.FindAll(c.ctx, chi.URLParam(r, "orgId"))
 	if err != nil {
-		errors.NewHttpError(w, errors.NewBadRequestError(
-			"failed to create role permission",
-			err,
-		))
+		if err, ok := err.(errors.ApplicationError); ok {
+			errors.NewHttpError(w, err)
+			return
+		}
+		errors.NewHttpError(w, errors.NewInternalServerError(err))
 		return
 	}
 
-	WriteSuccessResponse(w, http.StatusOK)
-}
+	util.PrintJSON(roles)
 
-func (c controller) getRole(w http.ResponseWriter, r *http.Request) {
-	role, err := c.svc.FindByID(
-		c.ctx,
-		chi.URLParam(r, "teamId"),
-		chi.URLParam(r, "roleId"),
-	)
-	if err != nil {
-		errors.NewHttpError(w, errors.NewBadRequestError(
-			"failed to get role",
-			err,
-		))
-		return
-	}
-
-	WriteJSONResponse(w, http.StatusOK, map[string]any{
-		"role": role,
-	})
-}
-
-func (c controller) getAllRoles(w http.ResponseWriter, r *http.Request) {
-	var teamId = chi.URLParam(r, "teamId")
-
-	roles, err := c.svc.GetAll(c.ctx, teamId)
-	if err != nil {
-		errors.NewHttpError(w, errors.NewBadRequestError(
-			"failed to get all roles",
-			err,
-		))
-		return
-	}
-
-	WriteJSONResponse(w, http.StatusOK, map[string]any{
+	util.WriteJSONResponse(w, http.StatusOK, map[string]any{
 		"roles": roles,
 	})
 }
 
 func (c controller) createRole(w http.ResponseWriter, r *http.Request) {
 	var body CreateRoleProps
+	body.OrgID = chi.URLParam(r, "orgId")
 
-	if err := ReadRequestBody(w, r, &body); err != nil {
-		errors.NewHttpError(w, errors.NewBadRequestError(
-			"failed to create role",
-			err,
-		))
+	if err := util.ReadRequestBody(w, r, &body); err != nil {
+		if err, ok := err.(errors.ApplicationError); ok {
+			errors.NewHttpError(w, err)
+			return
+		}
+		errors.NewHttpError(w, errors.NewInternalServerError(err))
 		return
 	}
 
-	if err := c.svc.Create(c.ctx, body); err != nil {
-		errors.NewHttpError(w, errors.NewBadRequestError(
-			"failed to create role",
-			err,
-		))
+	err := c.svc.Create(c.ctx, body)
+	if err != nil {
+		if err, ok := err.(errors.ApplicationError); ok {
+			errors.NewHttpError(w, err)
+			return
+		}
+		errors.NewHttpError(w, errors.NewInternalServerError(err))
 		return
 	}
 
-	WriteSuccessResponse(w, http.StatusOK)
+	util.WriteSuccessResponse(w, http.StatusCreated)
 }

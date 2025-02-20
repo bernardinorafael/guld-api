@@ -2,8 +2,10 @@ package role
 
 import (
 	"context"
-	"errors"
+	"time"
 
+	"github.com/bernardinorafael/internal/_shared/errors"
+	"github.com/bernardinorafael/internal/_shared/util"
 	"github.com/bernardinorafael/pkg/logger"
 )
 
@@ -16,62 +18,36 @@ func NewService(log logger.Logger, repo RepositoryInterface) ServiceInterface {
 	return &svc{log, repo}
 }
 
-func (s svc) MakeRolePermissions(ctx context.Context, roleId string, permissions []string) error {
-	// TODO: Find and validate team by teamId
-	if len(permissions) == 0 {
-		msg := "permissions slice cannot be empty"
-		s.log.Errorf(ctx, msg, "role_id", roleId)
-		return errors.New(msg)
+func (s *svc) Create(ctx context.Context, dto CreateRoleProps) error {
+	newRole := Entity{
+		ID:          util.GenID("role"),
+		Name:        dto.Name,
+		OrgID:       dto.OrgID,
+		Key:         dto.Key,
+		Description: dto.Description,
+		Created:     time.Now(),
+		Updated:     time.Now(),
 	}
 
-	err := s.repo.BatchRolePermissions(ctx, roleId, permissions)
+	err := s.repo.Insert(ctx, newRole)
 	if err != nil {
-		msg := "failed to insert permissions"
-		s.log.Errorf(ctx, msg, "error", err.Error(), "role_id", roleId)
-		return errors.New(msg)
+		s.log.Errorw(ctx, "failed to create role", logger.Err(err))
+		return errors.NewBadRequestError("failed to create role", nil)
 	}
 
 	return nil
 }
 
-func (s svc) FindByID(ctx context.Context, teamId string, roleId string) (*Entity, error) {
-	// TODO: Find and validate team by teamId
-	role, err := s.repo.FindByID(ctx, teamId, roleId)
+func (s *svc) FindAll(ctx context.Context, orgId string) ([]EntityWithPermission, error) {
+	roles, err := s.repo.FindAll(ctx, orgId)
 	if err != nil {
-		msg := "failed to retrieve role"
-		s.log.Errorf(ctx, msg, "error", err.Error(), "role_id", roleId)
-		return nil, errors.New(msg)
-	}
-
-	return role, nil
-}
-
-func (s svc) GetAll(ctx context.Context, teamId string) ([]Entity, error) {
-	// TODO: Find and validate team by teamId
-	roles, err := s.repo.GetAll(ctx, teamId)
-	if err != nil {
-		msg := "failed to create role"
-		s.log.Errorf(ctx, msg, "error", err.Error())
-		return nil, errors.New(msg)
+		s.log.Errorw(ctx, "failed to find all roles", logger.Err(err))
+		return nil, errors.NewBadRequestError("failed to find all roles", nil)
 	}
 
 	return roles, nil
 }
 
-func (s svc) Create(ctx context.Context, params CreateRoleProps) error {
-	// TODO: Find and validate team by teamId
-
-	_, err := s.repo.Create(ctx, Entity{
-		Name:        params.Name,
-		TeamID:      params.TeamID,
-		Key:         params.Key,
-		Description: params.Description,
-	})
-	if err != nil {
-		msg := "failed to create role"
-		s.log.Errorf(ctx, msg, "error", err.Error())
-		return errors.New(msg)
-	}
-
-	return nil
+func (s *svc) FindByID(ctx context.Context, orgId string, roleId string) (*Entity, error) {
+	panic("unimplemented")
 }

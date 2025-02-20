@@ -3,16 +3,16 @@ package role
 import "context"
 
 type RepositoryInterface interface {
-	Create(ctx context.Context, role Entity) (*Entity, error)
-	Delete(ctx context.Context, teamId, roleId string) error
-	FindByID(ctx context.Context, teamId, roleId string) (*Entity, error)
-	GetAll(ctx context.Context, teamId string) ([]Entity, error)
-	BatchRolePermissions(ctx context.Context, roleId string, permissions []string) error
+	Insert(ctx context.Context, entity Entity) error
+	Update(ctx context.Context, entity Entity) error
+	Delete(ctx context.Context, orgId, roleId string) error
+	FindByID(ctx context.Context, orgId, roleId string) (*EntityWithPermission, error)
+	FindAll(ctx context.Context, orgId string) ([]EntityWithPermission, error)
+	// BatchRolePermissions(ctx context.Context, roleId string, permissions []string) error
 }
 
 type ServiceInterface interface {
 	Create(ctx context.Context, params CreateRoleProps) error
-	FindByID(ctx context.Context, teamId, roleId string) (*Entity, error)
-	GetAll(ctx context.Context, teamId string) ([]Entity, error)
-	MakeRolePermissions(ctx context.Context, roleId string, permissions []string) error
+	FindByID(ctx context.Context, orgId, roleId string) (*Entity, error)
+	FindAll(ctx context.Context, orgId string) ([]EntityWithPermission, error)
 }

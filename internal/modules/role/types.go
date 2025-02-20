@@ -11,19 +11,29 @@ type Permission struct {
 }
 
 type Entity struct {
+	ID          string    `json:"id" db:"id"`
+	Name        string    `json:"name" db:"name"`
+	OrgID       string    `json:"org_id" db:"org_id"`
+	Key         string    `json:"key" db:"key"`
+	Description string    `json:"description" db:"description"`
+	Created     time.Time `json:"created" db:"created"`
+	Updated     time.Time `json:"updated" db:"updated"`
+}
+
+type EntityWithPermission struct {
 	ID          string       `json:"id" db:"id"`
 	Name        string       `json:"name" db:"name"`
-	TeamID      string       `json:"team_id" db:"team_id"`
+	OrgID       string       `json:"org_id" db:"org_id"`
+	Permissions []Permission `json:"permissions" db:"permissions"`
 	Key         string       `json:"key" db:"key"`
 	Description string       `json:"description" db:"description"`
-	Permissions []Permission `json:"permissions" db:"permissions"`
 	Created     time.Time    `json:"created" db:"created"`
 	Updated     time.Time    `json:"updated" db:"updated"`
 }
 
 type CreateRoleProps struct {
 	Name        string `json:"name"`
-	TeamID      string `json:"team_id"`
+	OrgID       string `json:"org_id"`
 	Key         string `json:"key"`
 	Description string `json:"description"`
 }
