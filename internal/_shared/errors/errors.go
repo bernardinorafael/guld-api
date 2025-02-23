@@ -5,10 +5,17 @@ import (
 	"net/http"
 )
 
-func NewHttpError(w http.ResponseWriter, err ApplicationError) {
+func NewHttpError(w http.ResponseWriter, err error) {
+	if err, ok := err.(ApplicationError); ok {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(err.StatusCode())
+		_ = json.NewEncoder(w).Encode(err)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(err.StatusCode())
-	_ = json.NewEncoder(w).Encode(err)
+	w.WriteHeader(http.StatusInternalServerError)
+	_ = json.NewEncoder(w).Encode(NewInternalServerError(err))
 }
 
 func NewUnauthorizedError(msg string, err error) ApplicationError {

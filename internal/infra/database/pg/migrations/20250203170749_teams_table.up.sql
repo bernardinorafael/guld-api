@@ -46,14 +46,14 @@ CREATE TABLE
 
 CREATE TABLE
 	IF NOT EXISTS "team_members" (
-		"id" varchar(255) PRIMARY KEY NOT NULL,
-		"team_id" varchar(255) NOT NULL,
-		"user_id" varchar(255) NOT NULL,
-		"role_id" varchar(255) NOT NULL,
-		"org_id" varchar(255) NOT NULL,
-		"created" timestamptz NOT NULL DEFAULT now (),
-		"updated" timestamptz NOT NULL DEFAULT now (),
-		UNIQUE ("team_id", "user_id"),
+		"id" VARCHAR(255) PRIMARY KEY NOT NULL,
+		"team_id" VARCHAR(255) NOT NULL,
+		"user_id" VARCHAR(255) NOT NULL,
+		"role_id" VARCHAR(255) NOT NULL,
+		"org_id" VARCHAR(255) NOT NULL,
+		"created" TIMESTAMPTZ NOT NULL DEFAULT NOW (),
+		"updated" TIMESTAMPTZ NOT NULL DEFAULT NOW (),
+		UNIQUE ("user_id"),
 		CONSTRAINT "team_id_fkey" FOREIGN KEY ("team_id") REFERENCES "teams" ("id") ON DELETE CASCADE,
 		CONSTRAINT "user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users" ("id") ON DELETE CASCADE,
 		CONSTRAINT "role_id_fkey" FOREIGN KEY ("role_id") REFERENCES "roles" ("id") ON DELETE CASCADE,

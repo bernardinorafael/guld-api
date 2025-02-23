@@ -2,11 +2,13 @@ package team
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	. "github.com/bernardinorafael/internal/_shared/errors"
 	"github.com/bernardinorafael/internal/_shared/util"
 	"github.com/bernardinorafael/pkg/logger"
+	"github.com/lib/pq"
 )
 
 type WithParams struct {
@@ -23,28 +25,20 @@ func NewService(log logger.Logger, repo RepositoryInterface) ServiceInterface {
 	return &svc{log, repo}
 }
 
-func (s *svc) GetTeamsByMember(ctx context.Context, orgId, userId string) ([]Entity, error) {
-	teams, err := s.repo.FindTeamsByMember(ctx, orgId, userId)
+func (s *svc) GetByMember(ctx context.Context, orgId, userId string) (*Entity, error) {
+	team, err := s.repo.FindByMember(ctx, orgId, userId)
 	if err != nil {
-		s.log.Errorw(ctx, "failed to get teams by member", logger.Err(err))
-		return nil, NewBadRequestError("failed to get teams by member", err)
+		s.log.Errorw(ctx, "failed to get team by member", logger.Err(err))
+		return nil, NewBadRequestError("failed to get team by member", err)
+	}
+	if team == nil {
+		s.log.Errorw(ctx, "team not found", logger.Err(err))
 	}
 
-	return teams, nil
+	return team, nil
 }
 
 func (s *svc) AddMember(ctx context.Context, input AddMemberParams) error {
-	tm, err := s.repo.FindTeamsByMember(ctx, input.OrgID, input.UserID)
-	if err != nil {
-		s.log.Errorw(ctx, "failed to get teams by member", logger.Err(err))
-		return NewBadRequestError("failed to get teams by member", err)
-	}
-
-	if len(tm) >= 3 {
-		s.log.Errorw(ctx, "max limit of teams reached", logger.Err(err))
-		return NewForbiddenError("max limit of teams reached", MaxLimitResourceReached, err)
-	}
-
 	t, err := s.repo.FindByID(ctx, input.OrgID, input.TeamID)
 	if err != nil {
 		s.log.Errorw(ctx, "failed to get team by id", logger.Err(err))
@@ -69,6 +63,11 @@ func (s *svc) AddMember(ctx context.Context, input AddMemberParams) error {
 
 	err = s.repo.InsertMember(ctx, member)
 	if err != nil {
+		var pqErr *pq.Error
+		// 23505 is the code for unique constraint violation
+		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
+			return NewForbiddenError("member already in team", DuplicatedField, err)
+		}
 		s.log.Errorw(ctx, "failed to add member to team", logger.Err(err))
 		return NewBadRequestError("failed to add member to team", err)
 	}

@@ -42,25 +42,28 @@ func (r *repo) Update(ctx context.Context, team Entity) error {
 	return nil
 }
 
-func (r *repo) FindTeamsByMember(ctx context.Context, orgId, userId string) ([]Entity, error) {
+func (r *repo) FindByMember(ctx context.Context, orgId, userId string) (*Entity, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
+	var team Entity
 	query := `
 		SELECT t.* FROM teams t
 			INNER JOIN team_members tm ON tm.team_id = t.id
 			INNER JOIN users u ON u.id = tm.user_id
-			INNER JOIN roles r ON r.id = tm.role_id
 		WHERE u.id = $1 AND t.org_id = $2
+		LIMIT 1
 	`
 
-	teams := make([]Entity, 0)
-	err := r.db.SelectContext(ctx, &teams, query, userId, orgId)
+	err := r.db.GetContext(ctx, &team, query, userId, orgId)
 	if err != nil {
-		return nil, fmt.Errorf("error on find teams by member: %w", err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("error on find team by member: %w", err)
 	}
 
-	return teams, nil
+	return &team, nil
 }
 
 func (r *repo) InsertMember(ctx context.Context, member TeamMember) error {

@@ -44,27 +44,24 @@ func (c controller) RegisterRoute(r *chi.Mux) {
 		r.Get("/{teamId}/organization/{orgId}", c.getByID)
 		r.Get("/{slug}/organization/{orgId}", c.getBySlug)
 		r.Post("/{teamId}/members", c.addMember)
-		r.Get("/members/{userId}/organization/{orgId}", c.getTeamsByMember)
+
+		r.Get("/member/{userId}/organization/{orgId}", c.getByMember)
 	})
 }
 
-func (c controller) getTeamsByMember(w http.ResponseWriter, r *http.Request) {
-	teams, err := c.svc.GetTeamsByMember(
+func (c controller) getByMember(w http.ResponseWriter, r *http.Request) {
+	team, err := c.svc.GetByMember(
 		c.ctx,
 		chi.URLParam(r, "orgId"),
 		chi.URLParam(r, "userId"),
 	)
 	if err != nil {
-		if err, ok := err.(ApplicationError); ok {
-			NewHttpError(w, err)
-			return
-		}
-		NewHttpError(w, NewInternalServerError(err))
+		NewHttpError(w, err)
 		return
 	}
 
 	util.WriteJSONResponse(w, http.StatusOK, map[string]any{
-		"teams": teams,
+		"team": team,
 	})
 }
 
@@ -73,20 +70,12 @@ func (c controller) addMember(w http.ResponseWriter, r *http.Request) {
 	body.TeamID = chi.URLParam(r, "teamId")
 
 	if err := util.ReadRequestBody(w, r, &body); err != nil {
-		if err, ok := err.(ApplicationError); ok {
-			NewHttpError(w, err)
-			return
-		}
-		NewHttpError(w, NewInternalServerError(err))
+		NewHttpError(w, err)
 		return
 	}
 
 	if err := c.svc.AddMember(c.ctx, body); err != nil {
-		if err, ok := err.(ApplicationError); ok {
-			NewHttpError(w, err)
-			return
-		}
-		NewHttpError(w, NewInternalServerError(err))
+		NewHttpError(w, err)
 		return
 	}
 
@@ -94,13 +83,13 @@ func (c controller) addMember(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c controller) getByID(w http.ResponseWriter, r *http.Request) {
-	team, err := c.svc.GetBySlug(c.ctx, chi.URLParam(r, "org_id"), chi.URLParam(r, "teamId"))
+	team, err := c.svc.GetBySlug(
+		c.ctx,
+		chi.URLParam(r, "orgId"),
+		chi.URLParam(r, "teamId"),
+	)
 	if err != nil {
-		if err, ok := err.(ApplicationError); ok {
-			NewHttpError(w, err)
-			return
-		}
-		NewHttpError(w, NewInternalServerError(err))
+		NewHttpError(w, err)
 		return
 	}
 
@@ -110,13 +99,13 @@ func (c controller) getByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c controller) getBySlug(w http.ResponseWriter, r *http.Request) {
-	team, err := c.svc.GetBySlug(c.ctx, chi.URLParam(r, "orgId"), chi.URLParam(r, "slug"))
+	team, err := c.svc.GetBySlug(
+		c.ctx,
+		chi.URLParam(r, "orgId"),
+		chi.URLParam(r, "slug"),
+	)
 	if err != nil {
-		if err, ok := err.(ApplicationError); ok {
-			NewHttpError(w, err)
-			return
-		}
-		NewHttpError(w, NewInternalServerError(err))
+		NewHttpError(w, err)
 		return
 	}
 
@@ -132,11 +121,7 @@ func (c controller) getAll(w http.ResponseWriter, r *http.Request) {
 		chi.URLParam(r, "ownerId"),
 	)
 	if err != nil {
-		if err, ok := err.(ApplicationError); ok {
-			NewHttpError(w, err)
-			return
-		}
-		NewHttpError(w, NewInternalServerError(err))
+		NewHttpError(w, err)
 		return
 	}
 
@@ -150,20 +135,12 @@ func (c controller) create(w http.ResponseWriter, r *http.Request) {
 	var body CreateTeamParams
 
 	if err := util.ReadRequestBody(w, r, &body); err != nil {
-		if err, ok := err.(ApplicationError); ok {
-			NewHttpError(w, err)
-			return
-		}
-		NewHttpError(w, NewInternalServerError(err))
+		NewHttpError(w, err)
 		return
 	}
 
 	if err := c.svc.Create(c.ctx, body); err != nil {
-		if err, ok := err.(ApplicationError); ok {
-			NewHttpError(w, err)
-			return
-		}
-		NewHttpError(w, NewInternalServerError(err))
+		NewHttpError(w, err)
 		return
 	}
 
