@@ -43,7 +43,54 @@ func (c controller) RegisterRoute(r *chi.Mux) {
 		r.Get("/organization/{orgId}/owner/{ownerId}", c.getAll)
 		r.Get("/{teamId}/organization/{orgId}", c.getByID)
 		r.Get("/{slug}/organization/{orgId}", c.getBySlug)
+		r.Post("/{teamId}/members", c.addMember)
+		r.Get("/members/{userId}/organization/{orgId}", c.getTeamsByMember)
 	})
+}
+
+func (c controller) getTeamsByMember(w http.ResponseWriter, r *http.Request) {
+	teams, err := c.svc.GetTeamsByMember(
+		c.ctx,
+		chi.URLParam(r, "orgId"),
+		chi.URLParam(r, "userId"),
+	)
+	if err != nil {
+		if err, ok := err.(ApplicationError); ok {
+			NewHttpError(w, err)
+			return
+		}
+		NewHttpError(w, NewInternalServerError(err))
+		return
+	}
+
+	util.WriteJSONResponse(w, http.StatusOK, map[string]any{
+		"teams": teams,
+	})
+}
+
+func (c controller) addMember(w http.ResponseWriter, r *http.Request) {
+	var body AddMemberParams
+	body.TeamID = chi.URLParam(r, "teamId")
+
+	if err := util.ReadRequestBody(w, r, &body); err != nil {
+		if err, ok := err.(ApplicationError); ok {
+			NewHttpError(w, err)
+			return
+		}
+		NewHttpError(w, NewInternalServerError(err))
+		return
+	}
+
+	if err := c.svc.AddMember(c.ctx, body); err != nil {
+		if err, ok := err.(ApplicationError); ok {
+			NewHttpError(w, err)
+			return
+		}
+		NewHttpError(w, NewInternalServerError(err))
+		return
+	}
+
+	util.WriteSuccessResponse(w, http.StatusOK)
 }
 
 func (c controller) getByID(w http.ResponseWriter, r *http.Request) {

@@ -54,8 +54,6 @@ func (c controller) getRoles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	util.PrintJSON(roles)
-
 	util.WriteJSONResponse(w, http.StatusOK, map[string]any{
 		"roles": roles,
 	})

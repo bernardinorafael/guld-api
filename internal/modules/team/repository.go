@@ -16,6 +16,85 @@ func NewRepository(db *sqlx.DB) RepositoryInterface {
 	return &repo{db}
 }
 
+func (r *repo) Update(ctx context.Context, team Entity) error {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	team.Updated = time.Now()
+	_, err := r.db.NamedExecContext(
+		ctx,
+		`
+		UPDATE teams
+		SET
+			name = :name,
+			slug = :slug,
+			members_count = :members_count,
+			updated = :updated
+		WHERE
+			id = :id
+		`,
+		team,
+	)
+	if err != nil {
+		return fmt.Errorf("error on update team: %w", err)
+	}
+
+	return nil
+}
+
+func (r *repo) FindTeamsByMember(ctx context.Context, orgId, userId string) ([]Entity, error) {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	query := `
+		SELECT t.* FROM teams t
+			INNER JOIN team_members tm ON tm.team_id = t.id
+			INNER JOIN users u ON u.id = tm.user_id
+			INNER JOIN roles r ON r.id = tm.role_id
+		WHERE u.id = $1 AND t.org_id = $2
+	`
+
+	teams := make([]Entity, 0)
+	err := r.db.SelectContext(ctx, &teams, query, userId, orgId)
+	if err != nil {
+		return nil, fmt.Errorf("error on find teams by member: %w", err)
+	}
+
+	return teams, nil
+}
+
+func (r *repo) InsertMember(ctx context.Context, member TeamMember) error {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	sql := `
+		INSERT INTO team_members (
+			id,
+			user_id,
+			role_id,
+			team_id,
+			org_id,
+			created,
+			updated
+		) VALUES (
+			:id,
+			:user_id,
+			:role_id,
+			:team_id,
+			:org_id,
+			:created,
+			:updated
+		)
+	`
+
+	_, err := r.db.NamedExecContext(ctx, sql, member)
+	if err != nil {
+		return fmt.Errorf("error on insert team member: %w", err)
+	}
+
+	return nil
+}
+
 func (r *repo) FindByID(ctx context.Context, orgId, teamId string) (*Entity, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
@@ -64,7 +143,32 @@ func (r repo) Insert(ctx context.Context, team Entity) error {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
-	_, err := r.db.NamedExecContext(ctx, InsertTeamQuery, team)
+	var query = `
+		INSERT INTO teams (
+			id,
+			name,
+			slug,
+			owner_id,
+			org_id,
+			logo,
+			created,
+			members_count,
+			updated
+		)
+		VALUES (
+			:id,
+			:name,
+			:slug,
+			:owner_id,
+			:org_id,
+			:logo,
+			:created,
+			:members_count,
+			:updated
+		)
+	`
+
+	_, err := r.db.NamedExecContext(ctx, query, team)
 	if err != nil {
 		return fmt.Errorf("error on insert team: %w", err)
 	}
@@ -93,16 +197,8 @@ func (r repo) FindAllWithMembers(ctx context.Context, orgId, ownerId string) ([]
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
-	sql := `
-		SELECT t.*, json_agg(u.*) as members
-		FROM teams t
-		LEFT JOIN users u ON u.team_id = t.id
-		WHERE t.owner_id = $1 AND t.org_id = $2
-		GROUP BY t.id
-	`
-
 	teams := make([]EntityWithMembers, 0)
-	err := r.db.SelectContext(ctx, &teams, sql, ownerId, orgId)
+	err := r.db.SelectContext(ctx, &teams, "", ownerId, orgId)
 	if err != nil {
 		return nil, fmt.Errorf("error on find all teams with members: %w", err)
 	}
@@ -115,14 +211,16 @@ func (r repo) FindAll(ctx context.Context, orgId, ownerId string) ([]Entity, err
 	defer cancel()
 
 	teams := make([]Entity, 0)
-	err := r.db.SelectContext(ctx, &teams, FindAllTeamsQuery, ownerId, orgId)
+	err := r.db.SelectContext(
+		ctx,
+		&teams,
+		"SELECT * FROM teams WHERE owner_id = $1 AND org_id = $2",
+		ownerId,
+		orgId,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("error on find all teams: %w", err)
 	}
 
 	return teams, nil
-}
-
-func (r repo) FindAllWithOrg(ctx context.Context, orgId, ownerId string) ([]EntityWithOrg, error) {
-	panic("unimplemented")
 }
