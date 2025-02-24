@@ -16,12 +16,28 @@ func NewRepository(db *sqlx.DB) RepositoryInterface {
 	return &repo{db}
 }
 
-func (r repo) FindValidationByEmail(ctx context.Context, emailId string) (*Validation, error) {
+func (r repo) FindValidationByEmailID(ctx context.Context, emailId string) (*Validation, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
 	var v Validation
 	err := r.db.GetContext(ctx, &v, "SELECT * FROM email_validations WHERE email_id = $1", emailId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &v, nil
+}
+
+func (r repo) FindValidationByEmail(ctx context.Context, email string) (*Validation, error) {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	var v Validation
+	err := r.db.GetContext(ctx, &v, "SELECT * FROM email_validations WHERE email = $1", email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil

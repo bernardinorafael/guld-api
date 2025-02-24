@@ -14,7 +14,8 @@ type RepositoryInterface interface {
 
 	InsertValidation(ctx context.Context, v Validation) error
 	UpdateValidation(ctx context.Context, v Validation) error
-	FindValidationByEmail(ctx context.Context, emailId string) (*Validation, error)
+	FindValidationByEmailID(ctx context.Context, emailId string) (*Validation, error)
+	FindValidationByEmail(ctx context.Context, email string) (*Validation, error)
 }
 
 type ServiceInterface interface {
@@ -27,5 +28,6 @@ type ServiceInterface interface {
 
 	InsertValidation(ctx context.Context, v Validation) error
 	UpdateValidation(ctx context.Context, v Validation) error
-	FindValidationByEmail(ctx context.Context, emailId string) (*Validation, error)
+	FindValidationByEmailID(ctx context.Context, emailId string) (*Validation, error)
+	FindValidationByEmail(ctx context.Context, email string) (*Validation, error)
 }

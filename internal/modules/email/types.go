@@ -17,7 +17,7 @@ type Validation struct {
 	EmailID    string    `json:"email_id" db:"email_id"`
 	Attempts   int       `json:"attempts" db:"attempts"`
 	IsConsumed bool      `json:"is_consumed" db:"is_consumed"`
-	IsVerified bool      `json:"is_verified" db:"is_verified"`
+	IsValid    bool      `json:"is_valid" db:"is_valid"`
 	Created    time.Time `json:"created" db:"created"`
 	Expires    time.Time `json:"expires" db:"expires"`
 }

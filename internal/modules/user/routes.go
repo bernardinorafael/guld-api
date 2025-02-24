@@ -252,8 +252,9 @@ func (c controller) getUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	util.WriteJSONResponse(w, http.StatusOK, map[string]any{
-		"user": res.User,
-		"meta": res.Meta,
+		"user":   res.User,
+		"emails": res.Emails,
+		"meta":   res.Meta,
 	})
 }
 

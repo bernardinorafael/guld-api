@@ -34,8 +34,22 @@ func (s svc) UpdateValidation(ctx context.Context, v Validation) error {
 	return nil
 }
 
-func (s svc) FindValidationByEmail(ctx context.Context, emailId string) (*Validation, error) {
-	validation, err := s.repo.FindValidationByEmail(ctx, emailId)
+func (s svc) FindValidationByEmail(ctx context.Context, email string) (*Validation, error) {
+	validation, err := s.repo.FindValidationByEmail(ctx, email)
+	if err != nil {
+		s.log.Errorw(ctx, "failed to find email validation", logger.Err(err))
+		return nil, errors.NewBadRequestError("failed to find email validation", nil)
+	}
+	if validation == nil {
+		s.log.Errorw(ctx, "email validation not found", logger.Err(err))
+		return nil, errors.NewNotFoundError("email validation not found", nil)
+	}
+
+	return validation, nil
+}
+
+func (s svc) FindValidationByEmailID(ctx context.Context, emailId string) (*Validation, error) {
+	validation, err := s.repo.FindValidationByEmailID(ctx, emailId)
 	if err != nil {
 		s.log.Errorw(ctx, "failed to find email validation", logger.Err(err))
 		return nil, errors.NewBadRequestError("failed to find email validation", nil)
