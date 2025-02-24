@@ -3,11 +3,15 @@ package team
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
+	"github.com/bernardinorafael/internal/_shared/dto"
 	. "github.com/bernardinorafael/internal/_shared/errors"
 	"github.com/bernardinorafael/internal/_shared/util"
 	"github.com/bernardinorafael/pkg/logger"
+	"github.com/bernardinorafael/pkg/pagination"
 	"github.com/lib/pq"
 )
 
@@ -23,6 +27,50 @@ type svc struct {
 
 func NewService(log logger.Logger, repo RepositoryInterface) ServiceInterface {
 	return &svc{log, repo}
+}
+
+func (s *svc) GetMembersByTeamID(
+	ctx context.Context,
+	orgId, slug string,
+	input dto.SearchParams,
+) (*pagination.Paginated[UserWithRole], error) {
+	safeSort := map[string]bool{
+		"full_name": true,
+		"username":  true,
+		"created":   true,
+	}
+	// Ignoring `-` preffix on verify sort opts
+	sort := strings.TrimPrefix(input.Sort, "-")
+	if !safeSort[sort] {
+		msg := "invalid sort params"
+		s.log.Errorw(ctx, msg, logger.Err(fmt.Errorf("invalid sort params: %s", input.Sort)))
+		return nil, NewValidationFieldError(
+			msg,
+			fmt.Errorf("invalid sort params: %s", input.Sort),
+			[]Field{
+				{Field: "sort", Msg: "invalid sort params"},
+			},
+		)
+	}
+
+	team, err := s.repo.FindBySlug(ctx, orgId, slug)
+	if err != nil {
+		s.log.Errorw(ctx, "failed to get team by id", logger.Err(err))
+		return nil, NewBadRequestError("failed to get team by id", err)
+	}
+	if team == nil {
+		s.log.Errorw(ctx, "team not found", logger.Err(err))
+		return nil, NewNotFoundError("team not found", err)
+	}
+
+	members, totalItems, err := s.repo.FindMembersByTeamID(ctx, orgId, team.ID, input)
+	if err != nil {
+		s.log.Errorw(ctx, "failed to get members by team id", logger.Err(err))
+		return nil, NewBadRequestError("failed to get members by team id", err)
+	}
+
+	paginated := pagination.New(members, totalItems, input.Page, input.Limit)
+	return &paginated, nil
 }
 
 func (s *svc) GetByMember(ctx context.Context, orgId, userId string) (*EntityWithRole, error) {

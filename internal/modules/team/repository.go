@@ -5,8 +5,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/bernardinorafael/internal/_shared/dto"
+	"github.com/bernardinorafael/pkg/transaction"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -42,11 +45,72 @@ func (r *repo) Update(ctx context.Context, team Entity) error {
 	return nil
 }
 
+func (r *repo) FindMembersByTeamID(ctx context.Context, orgId, teamId string, dto dto.SearchParams) ([]UserWithRole, int, error) {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	var members []UserWithRole
+	var count int
+
+	err := transaction.ExecTx(ctx, r.db, func(tx *sqlx.Tx) error {
+		err := tx.GetContext(
+			ctx,
+			&count,
+			"SELECT COUNT(*) FROM team_members WHERE team_id = $1 AND org_id = $2",
+			teamId,
+			orgId,
+		)
+		if err != nil {
+			return fmt.Errorf("error counting team members: %w", err)
+		}
+
+		direction := "DESC"
+		sort := dto.Sort
+
+		if strings.HasPrefix(sort, "-") {
+			direction = "ASC"
+			sort = strings.TrimPrefix(sort, "-")
+		}
+
+		query := fmt.Sprintf(`
+			SELECT
+				u.*,
+				r.id as "role.id",
+				r.name as "role.name"
+			FROM team_members tm
+				INNER JOIN users u ON u.id = tm.user_id
+				INNER JOIN roles r ON r.id = tm.role_id
+			WHERE tm.team_id = $1 AND tm.org_id = $2
+			AND (
+				(to_tsvector('simple', u.full_name) || to_tsvector('simple', u.username))
+					@@ websearch_to_tsquery('simple', $5)
+					OR u.full_name ILIKE '%%' || $5 || '%%'
+					OR u.username ILIKE '%%' || $5 || '%%'
+			)
+			ORDER BY u.%s %s
+			LIMIT $3 OFFSET $4
+		`, sort, direction)
+
+		skip := (dto.Page - 1) * dto.Limit
+
+		err = tx.SelectContext(ctx, &members, query, teamId, orgId, dto.Limit, skip, dto.Query)
+		if err != nil {
+			return fmt.Errorf("error on find members by team id: %w", err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, -1, fmt.Errorf("failed to find members by team id: %w", err)
+	}
+
+	return members, count, nil
+}
+
 func (r *repo) FindByMember(ctx context.Context, orgId, userId string) (*EntityWithRole, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
-	var team EntityWithRole
 	query := `
 		SELECT
 			t.id,
@@ -68,6 +132,7 @@ func (r *repo) FindByMember(ctx context.Context, orgId, userId string) (*EntityW
 		LIMIT 1
 	`
 
+	var team EntityWithRole
 	err := r.db.GetContext(ctx, &team, query, userId, orgId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

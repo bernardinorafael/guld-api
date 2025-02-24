@@ -1,6 +1,11 @@
 package team
 
-import "context"
+import (
+	"context"
+
+	"github.com/bernardinorafael/internal/_shared/dto"
+	"github.com/bernardinorafael/pkg/pagination"
+)
 
 type RepositoryInterface interface {
 	Update(ctx context.Context, team Entity) error
@@ -12,6 +17,7 @@ type RepositoryInterface interface {
 	FindByID(ctx context.Context, orgId, teamId string) (*Entity, error)
 	InsertMember(ctx context.Context, member TeamMember) error
 	FindByMember(ctx context.Context, orgId, userId string) (*EntityWithRole, error)
+	FindMembersByTeamID(ctx context.Context, orgId, teamId string, dto dto.SearchParams) ([]UserWithRole, int, error)
 }
 
 type ServiceInterface interface {
@@ -21,4 +27,5 @@ type ServiceInterface interface {
 	GetByID(ctx context.Context, orgId, teamId string) (*Entity, error)
 	AddMember(ctx context.Context, params AddMemberParams) error
 	GetByMember(ctx context.Context, orgId, userId string) (*EntityWithRole, error)
+	GetMembersByTeamID(ctx context.Context, orgId, teamId string, dto dto.SearchParams) (*pagination.Paginated[UserWithRole], error)
 }

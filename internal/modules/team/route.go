@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/bernardinorafael/internal/_shared/dto"
 	. "github.com/bernardinorafael/internal/_shared/errors"
 	"github.com/bernardinorafael/internal/_shared/util"
 
@@ -44,8 +45,33 @@ func (c controller) RegisterRoute(r *chi.Mux) {
 		r.Get("/{teamId}/organization/{orgId}", c.getByID)
 		r.Get("/{slug}/organization/{orgId}", c.getBySlug)
 		r.Post("/{teamId}/members", c.addMember)
-
 		r.Get("/member/{userId}/organization/{orgId}", c.getByMember)
+		r.Get("/{slug}/members/organization/{orgId}", c.getMembersByTeamID)
+	})
+}
+
+func (c controller) getMembersByTeamID(w http.ResponseWriter, r *http.Request) {
+	var input dto.SearchParams
+
+	input.Query = util.ReadQueryString(r.URL.Query(), "q", "")
+	input.Limit = util.ReadQueryInt(r.URL.Query(), "limit", 25)
+	input.Page = util.ReadQueryInt(r.URL.Query(), "page", 1)
+	input.Sort = util.ReadQueryString(r.URL.Query(), "sort", "created")
+
+	res, err := c.svc.GetMembersByTeamID(
+		c.ctx,
+		chi.URLParam(r, "orgId"),
+		chi.URLParam(r, "slug"),
+		input,
+	)
+	if err != nil {
+		NewHttpError(w, err)
+		return
+	}
+
+	util.WriteJSONResponse(w, http.StatusOK, map[string]any{
+		"data": res.Data,
+		"meta": res.Meta,
 	})
 }
 

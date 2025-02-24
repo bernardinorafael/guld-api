@@ -1,6 +1,15 @@
 package team
 
-import "time"
+import (
+	"time"
+)
+
+type TeamSearchParams struct {
+	Sort  string `json:"sort"`
+	Query string `json:"q"`
+	Page  int    `json:"page"`
+	Limit int    `json:"limit"`
+}
 
 type CreateTeamParams struct {
 	Name    string `json:"name"`

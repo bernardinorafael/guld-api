@@ -16,6 +16,11 @@ type EntityWithRole struct {
 	Role Role `json:"role" db:"role"`
 }
 
+type UserWithRole struct {
+	user.Entity
+	Role Role `json:"role"`
+}
+
 type Entity struct {
 	ID           string    `json:"id" db:"id"`
 	Name         string    `json:"name" db:"name"`
