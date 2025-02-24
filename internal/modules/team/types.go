@@ -6,6 +6,16 @@ import (
 	"github.com/bernardinorafael/internal/modules/user"
 )
 
+type Role struct {
+	ID   string `json:"id" db:"id"`
+	Name string `json:"name" db:"name"`
+}
+
+type EntityWithRole struct {
+	Entity
+	Role Role `json:"role" db:"role"`
+}
+
 type Entity struct {
 	ID           string    `json:"id" db:"id"`
 	Name         string    `json:"name" db:"name"`

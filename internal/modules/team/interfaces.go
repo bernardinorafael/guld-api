@@ -11,7 +11,7 @@ type RepositoryInterface interface {
 	FindBySlug(ctx context.Context, orgId, slug string) (*Entity, error)
 	FindByID(ctx context.Context, orgId, teamId string) (*Entity, error)
 	InsertMember(ctx context.Context, member TeamMember) error
-	FindByMember(ctx context.Context, orgId, userId string) (*Entity, error)
+	FindByMember(ctx context.Context, orgId, userId string) (*EntityWithRole, error)
 }
 
 type ServiceInterface interface {
@@ -20,5 +20,5 @@ type ServiceInterface interface {
 	GetBySlug(ctx context.Context, orgId, slug string) (*Entity, error)
 	GetByID(ctx context.Context, orgId, teamId string) (*Entity, error)
 	AddMember(ctx context.Context, params AddMemberParams) error
-	GetByMember(ctx context.Context, orgId, userId string) (*Entity, error)
+	GetByMember(ctx context.Context, orgId, userId string) (*EntityWithRole, error)
 }

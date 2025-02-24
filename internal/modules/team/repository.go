@@ -42,16 +42,29 @@ func (r *repo) Update(ctx context.Context, team Entity) error {
 	return nil
 }
 
-func (r *repo) FindByMember(ctx context.Context, orgId, userId string) (*Entity, error) {
+func (r *repo) FindByMember(ctx context.Context, orgId, userId string) (*EntityWithRole, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
-	var team Entity
+	var team EntityWithRole
 	query := `
-		SELECT t.* FROM teams t
+		SELECT
+			t.id,
+			t.name,
+			t.slug,
+			t.owner_id,
+			t.org_id,
+			t.logo,
+			t.members_count,
+			t.created,
+			t.updated,
+			r.id as "role.id",
+			r.name as "role.name"
+		FROM teams t
 			INNER JOIN team_members tm ON tm.team_id = t.id
-			INNER JOIN users u ON u.id = tm.user_id
-		WHERE u.id = $1 AND t.org_id = $2
+			INNER JOIN roles r ON r.id = tm.role_id
+			WHERE tm.user_id = $1
+			AND t.org_id = $2
 		LIMIT 1
 	`
 

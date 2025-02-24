@@ -25,7 +25,7 @@ func NewService(log logger.Logger, repo RepositoryInterface) ServiceInterface {
 	return &svc{log, repo}
 }
 
-func (s *svc) GetByMember(ctx context.Context, orgId, userId string) (*Entity, error) {
+func (s *svc) GetByMember(ctx context.Context, orgId, userId string) (*EntityWithRole, error) {
 	team, err := s.repo.FindByMember(ctx, orgId, userId)
 	if err != nil {
 		s.log.Errorw(ctx, "failed to get team by member", logger.Err(err))
