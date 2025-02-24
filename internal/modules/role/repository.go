@@ -5,8 +5,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/bernardinorafael/pkg/transaction"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -28,21 +30,65 @@ func (r *repo) Delete(ctx context.Context, orgId, roleId string) error {
 	return nil
 }
 
-func (r *repo) FindAll(ctx context.Context, orgId string) ([]EntityWithPermission, error) {
+func (r *repo) FindAll(
+	ctx context.Context,
+	orgId string,
+	params RoleSearchParams,
+) ([]EntityWithPermission, int, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
 	var roles []EntityWithPermission
-	err := r.db.SelectContext(ctx, &roles, "select * from roles where org_id = $1", orgId)
+	var count int
+
+	err := transaction.ExecTx(ctx, r.db, func(tx *sqlx.Tx) error {
+		err := tx.GetContext(ctx, &count, "SELECT COUNT(*) FROM roles WHERE org_id = $1", orgId)
+		if err != nil {
+			return fmt.Errorf("error on count all roles: %w", err)
+		}
+
+		direction := "DESC"
+		sort := params.Sort
+
+		if strings.HasPrefix(sort, "-") {
+			direction = "ASC"
+			sort = strings.TrimPrefix(sort, "-")
+		}
+
+		skip := (params.Page - 1) * params.Limit
+
+		sql := fmt.Sprintf(`
+			SELECT
+				r.id,
+				r.name,
+				r.org_id,
+				r.description,
+				r.created,
+				r.updated
+			FROM roles r
+			WHERE org_id = $1
+			AND (
+				(to_tsvector('simple', r.name) || to_tsvector('simple', r.description))
+					@@ websearch_to_tsquery('simple', $2)
+					OR r.name ILIKE '%%' || $2 || '%%'
+					OR r.description ILIKE '%%' || $2 || '%%'
+			)
+			ORDER BY %s %s
+			LIMIT $3 OFFSET $4
+		`, sort, direction)
+
+		err = tx.SelectContext(ctx, &roles, sql, orgId, params.Query, params.Limit, skip)
+		if err != nil {
+			return fmt.Errorf("error on find all roles: %w", err)
+		}
+
+		return nil
+	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to find all roles: %w", err)
+		return nil, -1, fmt.Errorf("failed to find all roles: %w", err)
 	}
 
-	for i := range roles {
-		roles[i].Permissions = make([]Permission, 0)
-	}
-
-	return roles, nil
+	return roles, count, nil
 }
 
 func (r *repo) FindByID(ctx context.Context, orgId, roleId string) (*EntityWithPermission, error) {
@@ -56,7 +102,6 @@ func (r *repo) FindByID(ctx context.Context, orgId, roleId string) (*EntityWithP
 			r.id,
 			r.name,
 			r.org_id,
-			r.key,
 			r.description,
 			r.created,
 			r.updated,
@@ -88,7 +133,6 @@ func (r *repo) Update(ctx context.Context, entity Entity) error {
 		UPDATE roles
 		SET
 			name = :name,
-			key = :key,
 			description = :description,
 			updated = :updated
 		WHERE id = :id
@@ -113,7 +157,6 @@ func (r *repo) Insert(ctx context.Context, entity Entity) error {
 			INSERT INTO roles (
 				id,
 				name,
-				key,
 				org_id,
 				description,
 				created,
@@ -121,7 +164,6 @@ func (r *repo) Insert(ctx context.Context, entity Entity) error {
 			) VALUES (
 				:id,
 				:name,
-				:key,
 				:org_id,
 				:description,
 				:created,

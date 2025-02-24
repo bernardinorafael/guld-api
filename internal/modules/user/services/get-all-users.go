@@ -11,7 +11,10 @@ import (
 	"github.com/bernardinorafael/pkg/pagination"
 )
 
-func (s svc) GetAll(ctx context.Context, dto user.UserSearchParams) (*pagination.Paginated[user.Entity], error) {
+func (s svc) GetAll(
+	ctx context.Context,
+	dto user.UserSearchParams,
+) (*pagination.Paginated[user.Entity], error) {
 	safeSort := map[string]bool{
 		"full_name": true,
 		"username":  true,

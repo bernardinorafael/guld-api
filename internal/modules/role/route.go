@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/bernardinorafael/internal/_shared/errors"
+	. "github.com/bernardinorafael/internal/_shared/errors"
 	"github.com/bernardinorafael/internal/_shared/util"
 	"github.com/bernardinorafael/internal/infra/http/middleware"
 	"github.com/bernardinorafael/pkg/logger"
@@ -44,41 +44,38 @@ func (c controller) RegisterRoute(r *chi.Mux) {
 }
 
 func (c controller) getRoles(w http.ResponseWriter, r *http.Request) {
-	roles, err := c.svc.FindAll(c.ctx, chi.URLParam(r, "orgId"))
+	var input RoleSearchParams
+
+	input.Query = util.ReadQueryString(r.URL.Query(), "q", "")
+	input.Limit = util.ReadQueryInt(r.URL.Query(), "limit", 25)
+	input.Page = util.ReadQueryInt(r.URL.Query(), "page", 1)
+	input.Sort = util.ReadQueryString(r.URL.Query(), "sort", "name")
+
+	res, err := c.svc.FindAll(c.ctx, chi.URLParam(r, "orgId"), input)
 	if err != nil {
-		if err, ok := err.(errors.ApplicationError); ok {
-			errors.NewHttpError(w, err)
-			return
-		}
-		errors.NewHttpError(w, errors.NewInternalServerError(err))
+		NewHttpError(w, err)
 		return
 	}
 
 	util.WriteJSONResponse(w, http.StatusOK, map[string]any{
-		"roles": roles,
+		"data": res.Data,
+		"meta": res.Meta,
 	})
 }
 
 func (c controller) createRole(w http.ResponseWriter, r *http.Request) {
-	var body CreateRoleProps
-	body.OrgID = chi.URLParam(r, "orgId")
+	var input CreateRoleProps
+	input.OrgID = chi.URLParam(r, "orgId")
 
-	if err := util.ReadRequestBody(w, r, &body); err != nil {
-		if err, ok := err.(errors.ApplicationError); ok {
-			errors.NewHttpError(w, err)
-			return
-		}
-		errors.NewHttpError(w, errors.NewInternalServerError(err))
+	err := util.ReadRequestBody(w, r, &input)
+	if err != nil {
+		NewHttpError(w, err)
 		return
 	}
 
-	err := c.svc.Create(c.ctx, body)
+	err = c.svc.Create(c.ctx, input)
 	if err != nil {
-		if err, ok := err.(errors.ApplicationError); ok {
-			errors.NewHttpError(w, err)
-			return
-		}
-		errors.NewHttpError(w, errors.NewInternalServerError(err))
+		NewHttpError(w, err)
 		return
 	}
 

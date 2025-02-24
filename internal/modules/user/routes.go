@@ -65,11 +65,7 @@ func (c controller) RegisterRoute(r *chi.Mux) {
 
 func (c controller) validateEmail(w http.ResponseWriter, r *http.Request) {
 	if err := c.svc.ValidateEmail(r.Context(), chi.URLParam(r, "emailId")); err != nil {
-		if err, ok := err.(ApplicationError); ok {
-			NewHttpError(w, err)
-			return
-		}
-		NewHttpError(w, NewInternalServerError(err))
+		NewHttpError(w, err)
 		return
 	}
 
@@ -79,11 +75,7 @@ func (c controller) validateEmail(w http.ResponseWriter, r *http.Request) {
 func (c controller) getEmail(w http.ResponseWriter, r *http.Request) {
 	email, err := c.svc.FindEmail(r.Context(), chi.URLParam(r, "emailId"))
 	if err != nil {
-		if err, ok := err.(ApplicationError); ok {
-			NewHttpError(w, err)
-			return
-		}
-		NewHttpError(w, NewInternalServerError(err))
+		NewHttpError(w, err)
 		return
 	}
 
@@ -96,21 +88,13 @@ func (c controller) requestEmailValidation(w http.ResponseWriter, r *http.Reques
 	}
 
 	if err := util.ReadRequestBody(w, r, &body); err != nil {
-		if err, ok := err.(ApplicationError); ok {
-			NewHttpError(w, err)
-			return
-		}
-		NewHttpError(w, NewInternalServerError(err))
+		NewHttpError(w, err)
 		return
 	}
 
 	err := c.svc.RequestEmailValidation(c.ctx, body.Email, chi.URLParam(r, "userId"))
 	if err != nil {
-		if err, ok := err.(ApplicationError); ok {
-			NewHttpError(w, err)
-			return
-		}
-		NewHttpError(w, NewInternalServerError(err))
+		NewHttpError(w, err)
 		return
 	}
 
@@ -123,11 +107,7 @@ func (c controller) deletePhone(w http.ResponseWriter, r *http.Request) {
 		chi.URLParam(r, "userId"),
 		chi.URLParam(r, "phoneId"),
 	); err != nil {
-		if err, ok := err.(ApplicationError); ok {
-			NewHttpError(w, err)
-			return
-		}
-		NewHttpError(w, NewInternalServerError(err))
+		NewHttpError(w, err)
 		return
 	}
 
@@ -140,11 +120,7 @@ func (c controller) setPrimaryPhone(w http.ResponseWriter, r *http.Request) {
 		chi.URLParam(r, "userId"),
 		chi.URLParam(r, "phoneId"),
 	); err != nil {
-		if err, ok := err.(ApplicationError); ok {
-			NewHttpError(w, err)
-			return
-		}
-		NewHttpError(w, NewInternalServerError(err))
+		NewHttpError(w, err)
 		return
 	}
 
@@ -157,11 +133,7 @@ func (c controller) setPrimaryEmail(w http.ResponseWriter, r *http.Request) {
 		chi.URLParam(r, "userId"),
 		chi.URLParam(r, "emailId"),
 	); err != nil {
-		if err, ok := err.(ApplicationError); ok {
-			NewHttpError(w, err)
-			return
-		}
-		NewHttpError(w, NewInternalServerError(err))
+		NewHttpError(w, err)
 		return
 	}
 
@@ -173,20 +145,12 @@ func (c controller) addPhone(w http.ResponseWriter, r *http.Request) {
 	body.UserID = chi.URLParam(r, "userId")
 
 	if err := util.ReadRequestBody(w, r, &body); err != nil {
-		if err, ok := err.(ApplicationError); ok {
-			NewHttpError(w, err)
-			return
-		}
-		NewHttpError(w, NewInternalServerError(err))
+		NewHttpError(w, err)
 		return
 	}
 
 	if err := c.svc.AddPhone(c.ctx, body); err != nil {
-		if err, ok := err.(ApplicationError); ok {
-			NewHttpError(w, err)
-			return
-		}
-		NewHttpError(w, NewInternalServerError(err))
+		NewHttpError(w, err)
 		return
 	}
 
@@ -199,11 +163,7 @@ func (c controller) deleteEmail(w http.ResponseWriter, r *http.Request) {
 		chi.URLParam(r, "userId"),
 		chi.URLParam(r, "emailId"),
 	); err != nil {
-		if err, ok := err.(ApplicationError); ok {
-			NewHttpError(w, err)
-			return
-		}
-		NewHttpError(w, NewInternalServerError(err))
+		NewHttpError(w, err)
 		return
 	}
 
@@ -213,11 +173,7 @@ func (c controller) deleteEmail(w http.ResponseWriter, r *http.Request) {
 func (c controller) getPhones(w http.ResponseWriter, r *http.Request) {
 	phones, err := c.svc.FindAllPhones(c.ctx, chi.URLParam(r, "userId"))
 	if err != nil {
-		if err, ok := err.(ApplicationError); ok {
-			NewHttpError(w, err)
-			return
-		}
-		NewHttpError(w, NewInternalServerError(err))
+		NewHttpError(w, err)
 		return
 	}
 
@@ -227,11 +183,7 @@ func (c controller) getPhones(w http.ResponseWriter, r *http.Request) {
 func (c controller) getEmails(w http.ResponseWriter, r *http.Request) {
 	emails, err := c.svc.FindAllEmails(c.ctx, chi.URLParam(r, "userId"))
 	if err != nil {
-		if err, ok := err.(ApplicationError); ok {
-			NewHttpError(w, err)
-			return
-		}
-		NewHttpError(w, NewInternalServerError(err))
+		NewHttpError(w, err)
 		return
 	}
 
@@ -243,20 +195,12 @@ func (c controller) addEmail(w http.ResponseWriter, r *http.Request) {
 	body.UserID = chi.URLParam(r, "userId")
 
 	if err := util.ReadRequestBody(w, r, &body); err != nil {
-		if err, ok := err.(ApplicationError); ok {
-			NewHttpError(w, err)
-			return
-		}
-		NewHttpError(w, NewInternalServerError(err))
+		NewHttpError(w, err)
 		return
 	}
 
 	if err := c.svc.AddEmail(c.ctx, body); err != nil {
-		if err, ok := err.(ApplicationError); ok {
-			NewHttpError(w, err)
-			return
-		}
-		NewHttpError(w, NewInternalServerError(err))
+		NewHttpError(w, err)
 		return
 	}
 
@@ -265,11 +209,7 @@ func (c controller) addEmail(w http.ResponseWriter, r *http.Request) {
 
 func (c controller) toggleLock(w http.ResponseWriter, r *http.Request) {
 	if err := c.svc.ToggleLock(c.ctx, chi.URLParam(r, "userId")); err != nil {
-		if err, ok := err.(ApplicationError); ok {
-			NewHttpError(w, err)
-			return
-		}
-		NewHttpError(w, NewInternalServerError(err))
+		NewHttpError(w, err)
 		return
 	}
 
@@ -278,11 +218,7 @@ func (c controller) toggleLock(w http.ResponseWriter, r *http.Request) {
 
 func (c controller) delete(w http.ResponseWriter, r *http.Request) {
 	if err := c.svc.Delete(c.ctx, chi.URLParam(r, "id")); err != nil {
-		if err, ok := err.(ApplicationError); ok {
-			NewHttpError(w, err)
-			return
-		}
-		NewHttpError(w, NewInternalServerError(err))
+		NewHttpError(w, err)
 		return
 	}
 
@@ -293,21 +229,13 @@ func (c controller) create(w http.ResponseWriter, r *http.Request) {
 	var body UserRegisterParams
 
 	if err := util.ReadRequestBody(w, r, &body); err != nil {
-		if err, ok := err.(ApplicationError); ok {
-			NewHttpError(w, err)
-			return
-		}
-		NewHttpError(w, NewInternalServerError(err))
+		NewHttpError(w, err)
 		return
 	}
 
 	userId, err := c.svc.Create(c.ctx, body)
 	if err != nil {
-		if err, ok := err.(ApplicationError); ok {
-			NewHttpError(w, err)
-			return
-		}
-		NewHttpError(w, NewInternalServerError(err))
+		NewHttpError(w, err)
 		return
 	}
 
@@ -319,11 +247,7 @@ func (c controller) create(w http.ResponseWriter, r *http.Request) {
 func (c controller) getUser(w http.ResponseWriter, r *http.Request) {
 	res, err := c.svc.FindByID(c.ctx, chi.URLParam(r, "id"))
 	if err != nil {
-		if err, ok := err.(ApplicationError); ok {
-			NewHttpError(w, err)
-			return
-		}
-		NewHttpError(w, NewInternalServerError(err))
+		NewHttpError(w, err)
 		return
 	}
 
@@ -343,11 +267,7 @@ func (c controller) getAllUsers(w http.ResponseWriter, r *http.Request) {
 
 	res, err := c.svc.GetAll(c.ctx, p)
 	if err != nil {
-		if err, ok := err.(ApplicationError); ok {
-			NewHttpError(w, err)
-			return
-		}
-		NewHttpError(w, NewInternalServerError(err))
+		NewHttpError(w, err)
 		return
 	}
 

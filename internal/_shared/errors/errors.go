@@ -52,3 +52,8 @@ func NewConflictError(msg string, code ErrorCode, err error, fields []Field) App
 	httpCode := http.StatusConflict
 	return newApplicationError(httpCode, code, msg, err, fields)
 }
+
+func NewUnprocessableEntityError(msg string, err error) ApplicationError {
+	httpCode := http.StatusUnprocessableEntity
+	return newApplicationError(httpCode, ValidationField, msg, err, nil)
+}
