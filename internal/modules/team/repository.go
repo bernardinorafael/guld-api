@@ -19,7 +19,19 @@ func NewRepository(db *sqlx.DB) RepositoryInterface {
 	return &repo{db}
 }
 
-func (r *repo) Update(ctx context.Context, team Entity) error {
+func (r repo) DeleteMember(ctx context.Context, userId string) error {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	_, err := r.db.ExecContext(ctx, "DELETE FROM team_members WHERE user_id = $1", userId)
+	if err != nil {
+		return fmt.Errorf("error on delete team member: %w", err)
+	}
+
+	return nil
+}
+
+func (r repo) Update(ctx context.Context, team Entity) error {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
@@ -45,7 +57,7 @@ func (r *repo) Update(ctx context.Context, team Entity) error {
 	return nil
 }
 
-func (r *repo) FindMembersByTeamID(ctx context.Context, orgId, teamId string, dto dto.SearchParams) ([]UserWithRole, int, error) {
+func (r repo) FindMembersByTeamID(ctx context.Context, orgId, teamId string, dto dto.SearchParams) ([]UserWithRole, int, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
@@ -107,7 +119,7 @@ func (r *repo) FindMembersByTeamID(ctx context.Context, orgId, teamId string, dt
 	return members, count, nil
 }
 
-func (r *repo) FindByMember(ctx context.Context, orgId, userId string) (*EntityWithRole, error) {
+func (r repo) FindByMember(ctx context.Context, orgId, userId string) (*EntityWithRole, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
@@ -144,7 +156,7 @@ func (r *repo) FindByMember(ctx context.Context, orgId, userId string) (*EntityW
 	return &team, nil
 }
 
-func (r *repo) InsertMember(ctx context.Context, member TeamMember) error {
+func (r repo) InsertMember(ctx context.Context, member TeamMember) error {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
@@ -176,7 +188,7 @@ func (r *repo) InsertMember(ctx context.Context, member TeamMember) error {
 	return nil
 }
 
-func (r *repo) FindByID(ctx context.Context, orgId, teamId string) (*Entity, error) {
+func (r repo) FindByID(ctx context.Context, orgId, teamId string) (*Entity, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
@@ -198,7 +210,7 @@ func (r *repo) FindByID(ctx context.Context, orgId, teamId string) (*Entity, err
 	return &team, nil
 }
 
-func (r *repo) FindBySlug(ctx context.Context, orgId, slug string) (*Entity, error) {
+func (r repo) FindBySlug(ctx context.Context, orgId, slug string) (*Entity, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 

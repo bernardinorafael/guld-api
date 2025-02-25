@@ -29,6 +29,16 @@ func NewService(log logger.Logger, repo RepositoryInterface) ServiceInterface {
 	return &svc{log, repo}
 }
 
+func (s *svc) DeleteMember(ctx context.Context, userId string) error {
+	err := s.repo.DeleteMember(ctx, userId)
+	if err != nil {
+		s.log.Errorw(ctx, "failed to delete member", logger.Err(err))
+		return NewBadRequestError("failed to delete member", err)
+	}
+
+	return nil
+}
+
 func (s *svc) GetMembersByTeamID(
 	ctx context.Context,
 	orgId, slug string,

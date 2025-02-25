@@ -47,7 +47,18 @@ func (c controller) RegisterRoute(r *chi.Mux) {
 		r.Post("/{teamId}/members", c.addMember)
 		r.Get("/member/{userId}/organization/{orgId}", c.getByMember)
 		r.Get("/{slug}/members/organization/{orgId}", c.getMembersByTeamID)
+		r.Delete("/members/{userId}", c.deleteMember)
 	})
+}
+
+func (c controller) deleteMember(w http.ResponseWriter, r *http.Request) {
+	err := c.svc.DeleteMember(c.ctx, chi.URLParam(r, "userId"))
+	if err != nil {
+		NewHttpError(w, err)
+		return
+	}
+
+	util.WriteSuccessResponse(w, http.StatusOK)
 }
 
 func (c controller) getMembersByTeamID(w http.ResponseWriter, r *http.Request) {

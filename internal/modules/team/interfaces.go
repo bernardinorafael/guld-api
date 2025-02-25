@@ -18,6 +18,7 @@ type RepositoryInterface interface {
 	InsertMember(ctx context.Context, member TeamMember) error
 	FindByMember(ctx context.Context, orgId, userId string) (*EntityWithRole, error)
 	FindMembersByTeamID(ctx context.Context, orgId, teamId string, dto dto.SearchParams) ([]UserWithRole, int, error)
+	DeleteMember(ctx context.Context, userId string) error
 }
 
 type ServiceInterface interface {
@@ -28,4 +29,5 @@ type ServiceInterface interface {
 	AddMember(ctx context.Context, params AddMemberParams) error
 	GetByMember(ctx context.Context, orgId, userId string) (*EntityWithRole, error)
 	GetMembersByTeamID(ctx context.Context, orgId, teamId string, dto dto.SearchParams) (*pagination.Paginated[UserWithRole], error)
+	DeleteMember(ctx context.Context, userId string) error
 }
