@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/bernardinorafael/internal/modules/email"
-	"github.com/bernardinorafael/internal/modules/phone"
 )
 
 type PartialEntity struct {
@@ -33,8 +32,7 @@ type Entity struct {
 }
 
 type CompleteEntity struct {
-	User   Entity                  `json:"user" db:"user"`
-	Emails []email.Entity          `json:"emails" db:"emails"`
-	Phones []phone.AdditionalPhone `json:"phones" db:"phones"`
-	Meta   map[string]any          `json:"meta"`
+	User   Entity         `json:"user" db:"user"`
+	Emails []email.Entity `json:"emails" db:"emails"`
+	Meta   map[string]any `json:"meta"`
 }

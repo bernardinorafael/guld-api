@@ -200,19 +200,13 @@ func (r repo) Insert(ctx context.Context, acc EntityWithUser) error {
 	err := transaction.ExecTx(ctx, r.db, func(tx *sqlx.Tx) error {
 		_, err := tx.NamedExecContext(ctx, user.InsertUserQuery, acc.User)
 		if err != nil {
-			return err
+			return fmt.Errorf("error on insert user: %w", err)
 		}
 
 		emailId := util.GenID("email")
 		_, err = tx.ExecContext(ctx, user.InsertEmailQuery, emailId, acc.User.ID, acc.User.EmailAddress)
 		if err != nil {
-			return err
-		}
-
-		phoneId := util.GenID("phone")
-		_, err = tx.ExecContext(ctx, user.InsertPhoneQuery, phoneId, acc.User.ID, acc.User.PhoneNumber)
-		if err != nil {
-			return err
+			return fmt.Errorf("error on insert email: %w", err)
 		}
 
 		_, err = tx.ExecContext(
@@ -223,13 +217,13 @@ func (r repo) Insert(ctx context.Context, acc EntityWithUser) error {
 			acc.Password,
 		)
 		if err != nil {
-			return err
+			return fmt.Errorf("error on insert account: %w", err)
 		}
 
 		return nil
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("error on insert account: %w", err)
 	}
 
 	return nil

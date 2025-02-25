@@ -8,7 +8,6 @@ import (
 	"github.com/bernardinorafael/internal/_shared/util"
 	"github.com/bernardinorafael/internal/infra/http/middleware"
 	"github.com/bernardinorafael/internal/modules/email"
-	"github.com/bernardinorafael/internal/modules/phone"
 	"github.com/bernardinorafael/pkg/logger"
 	"github.com/go-chi/chi"
 )
@@ -55,11 +54,6 @@ func (c controller) RegisterRoute(r *chi.Mux) {
 		r.Delete("/{userId}/emails/{emailId}", c.deleteEmail)
 		r.Patch("/{userId}/emails/{emailId}/set-primary", c.setPrimaryEmail)
 		r.Post("/{userId}/emails/request-validation", c.requestEmailValidation)
-		// Phones
-		r.Get("/{userId}/phones", c.getPhones)
-		r.Post("/{userId}/phones", c.addPhone)
-		r.Delete("/{userId}/phones/{phoneId}", c.deletePhone)
-		r.Patch("/{userId}/phones/{phoneId}/set-primary", c.setPrimaryPhone)
 	})
 }
 
@@ -101,55 +95,12 @@ func (c controller) requestEmailValidation(w http.ResponseWriter, r *http.Reques
 	util.WriteSuccessResponse(w, http.StatusOK)
 }
 
-func (c controller) deletePhone(w http.ResponseWriter, r *http.Request) {
-	if err := c.svc.DeletePhone(
-		c.ctx,
-		chi.URLParam(r, "userId"),
-		chi.URLParam(r, "phoneId"),
-	); err != nil {
-		NewHttpError(w, err)
-		return
-	}
-
-	util.WriteSuccessResponse(w, http.StatusOK)
-}
-
-func (c controller) setPrimaryPhone(w http.ResponseWriter, r *http.Request) {
-	if err := c.svc.SetPrimaryPhone(
-		c.ctx,
-		chi.URLParam(r, "userId"),
-		chi.URLParam(r, "phoneId"),
-	); err != nil {
-		NewHttpError(w, err)
-		return
-	}
-
-	util.WriteSuccessResponse(w, http.StatusOK)
-}
-
 func (c controller) setPrimaryEmail(w http.ResponseWriter, r *http.Request) {
 	if err := c.svc.SetPrimaryEmail(
 		c.ctx,
 		chi.URLParam(r, "userId"),
 		chi.URLParam(r, "emailId"),
 	); err != nil {
-		NewHttpError(w, err)
-		return
-	}
-
-	util.WriteSuccessResponse(w, http.StatusOK)
-}
-
-func (c controller) addPhone(w http.ResponseWriter, r *http.Request) {
-	var body phone.CreatePhoneParams
-	body.UserID = chi.URLParam(r, "userId")
-
-	if err := util.ReadRequestBody(w, r, &body); err != nil {
-		NewHttpError(w, err)
-		return
-	}
-
-	if err := c.svc.AddPhone(c.ctx, body); err != nil {
 		NewHttpError(w, err)
 		return
 	}
@@ -168,16 +119,6 @@ func (c controller) deleteEmail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	util.WriteSuccessResponse(w, http.StatusOK)
-}
-
-func (c controller) getPhones(w http.ResponseWriter, r *http.Request) {
-	phones, err := c.svc.FindAllPhones(c.ctx, chi.URLParam(r, "userId"))
-	if err != nil {
-		NewHttpError(w, err)
-		return
-	}
-
-	util.WriteJSONResponse(w, http.StatusOK, map[string]any{"phones": phones})
 }
 
 func (c controller) getEmails(w http.ResponseWriter, r *http.Request) {

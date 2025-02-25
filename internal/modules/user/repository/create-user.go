@@ -26,12 +26,6 @@ func (r repo) Create(ctx context.Context, usr user.Entity) error {
 			return err
 		}
 
-		phoneId := util.GenID("phone")
-		_, err = tx.ExecContext(ctx, user.InsertPhoneQuery, phoneId, usr.ID, usr.PhoneNumber)
-		if err != nil {
-			return err
-		}
-
 		return nil
 	})
 	if err != nil {

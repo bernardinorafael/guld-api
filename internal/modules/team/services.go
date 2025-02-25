@@ -90,7 +90,7 @@ func (s *svc) GetByMember(ctx context.Context, orgId, userId string) (*EntityWit
 		return nil, NewBadRequestError("failed to get team by member", err)
 	}
 	if team == nil {
-		s.log.Errorw(ctx, "team not found", logger.Err(err))
+		s.log.Warn(ctx, "team not found")
 	}
 
 	return team, nil

@@ -16,7 +16,6 @@ import (
 	"github.com/bernardinorafael/internal/modules/email"
 	"github.com/bernardinorafael/internal/modules/org"
 	"github.com/bernardinorafael/internal/modules/permission"
-	"github.com/bernardinorafael/internal/modules/phone"
 	"github.com/bernardinorafael/internal/modules/role"
 	"github.com/bernardinorafael/internal/modules/team"
 	"github.com/bernardinorafael/internal/modules/user"
@@ -67,7 +66,6 @@ func main() {
 	// Repositories
 	userRepo := userrepo.New(db.GetDB())
 	emailRepo := email.NewRepository(db.GetDB())
-	phoneRepo := phone.NewRepository(db.GetDB())
 	roleRepo := role.NewRepository(db.GetDB())
 	permRepo := permission.NewRepository(db.GetDB())
 	teamRepo := team.NewRepository(db.GetDB())
@@ -81,7 +79,7 @@ func main() {
 	permService := permission.NewService(log, permRepo)
 	roleService := role.NewService(log, roleRepo)
 	teamService := team.NewService(log, teamRepo)
-	userService := usersvc.New(log, userRepo, emailService, phoneRepo, mailer)
+	userService := usersvc.New(log, userRepo, emailService, mailer)
 	orgService := org.NewService(log, orgRepo)
 
 	// Controllers
