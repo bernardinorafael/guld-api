@@ -47,12 +47,17 @@ func (c controller) RegisterRoute(r *chi.Mux) {
 		r.Post("/{teamId}/members", c.addMember)
 		r.Get("/member/{userId}/organization/{orgId}", c.getByMember)
 		r.Get("/{slug}/members/organization/{orgId}", c.getMembersByTeamID)
-		r.Delete("/members/{userId}", c.deleteMember)
+		r.Delete("/{teamId}/members/{userId}/organization/{orgId}", c.deleteMember)
 	})
 }
 
 func (c controller) deleteMember(w http.ResponseWriter, r *http.Request) {
-	err := c.svc.DeleteMember(c.ctx, chi.URLParam(r, "userId"))
+	err := c.svc.DeleteMember(
+		c.ctx,
+		chi.URLParam(r, "orgId"),
+		chi.URLParam(r, "userId"),
+		chi.URLParam(r, "teamId"),
+	)
 	if err != nil {
 		NewHttpError(w, err)
 		return
@@ -169,7 +174,7 @@ func (c controller) getAll(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c controller) create(w http.ResponseWriter, r *http.Request) {
-	var body CreateTeamParams
+	var body CreateTeamDTO
 
 	if err := util.ReadRequestBody(w, r, &body); err != nil {
 		NewHttpError(w, err)

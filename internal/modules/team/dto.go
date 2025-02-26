@@ -4,14 +4,7 @@ import (
 	"time"
 )
 
-type TeamSearchParams struct {
-	Sort  string `json:"sort"`
-	Query string `json:"q"`
-	Page  int    `json:"page"`
-	Limit int    `json:"limit"`
-}
-
-type CreateTeamParams struct {
+type CreateTeamDTO struct {
 	Name    string `json:"name"`
 	OwnerID string `json:"owner_id"`
 	OrgID   string `json:"org_id"`

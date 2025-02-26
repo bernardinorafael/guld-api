@@ -29,11 +29,26 @@ func NewService(log logger.Logger, repo RepositoryInterface) ServiceInterface {
 	return &svc{log, repo}
 }
 
-func (s *svc) DeleteMember(ctx context.Context, userId string) error {
-	err := s.repo.DeleteMember(ctx, userId)
+func (s *svc) DeleteMember(ctx context.Context, orgId, userId, teamId string) error {
+	t, err := s.repo.FindByID(ctx, orgId, teamId)
 	if err != nil {
-		s.log.Errorw(ctx, "failed to delete member", logger.Err(err))
+		return NewBadRequestError("failed to get team by teamId", err)
+	}
+
+	err = s.repo.DeleteMember(ctx, userId, teamId)
+	if err != nil {
 		return NewBadRequestError("failed to delete member", err)
+	}
+
+	team, err := NewFromEntity(*t)
+	if err != nil {
+		return NewBadRequestError("failed to create team", err)
+	}
+	team.DecrementMembersCount()
+
+	err = s.repo.Update(ctx, team.Store())
+	if err != nil {
+		return NewBadRequestError("failed to update team members count", err)
 	}
 
 	return nil
@@ -119,6 +134,8 @@ func (s *svc) AddMember(ctx context.Context, input AddMemberParams) error {
 		Updated: time.Now(),
 	}
 
+	util.PrintJSON(member)
+
 	err = s.repo.InsertMember(ctx, member)
 	if err != nil {
 		var pqErr *pq.Error
@@ -168,7 +185,7 @@ func (s svc) GetBySlug(ctx context.Context, orgId string, slug string) (*Entity,
 	return team, nil
 }
 
-func (s svc) Create(ctx context.Context, dto CreateTeamParams) error {
+func (s svc) Create(ctx context.Context, dto CreateTeamDTO) error {
 	newTeam, err := NewTeam(dto.Name, dto.OwnerID, dto.OrgID)
 	if err != nil {
 		s.log.Errorw(ctx, "failed to create team", logger.Err(err))

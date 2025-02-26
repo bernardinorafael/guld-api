@@ -19,11 +19,16 @@ func NewRepository(db *sqlx.DB) RepositoryInterface {
 	return &repo{db}
 }
 
-func (r repo) DeleteMember(ctx context.Context, userId string) error {
+func (r repo) DeleteMember(ctx context.Context, userId, teamId string) error {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
-	_, err := r.db.ExecContext(ctx, "DELETE FROM team_members WHERE user_id = $1", userId)
+	_, err := r.db.ExecContext(
+		ctx,
+		"DELETE FROM team_members WHERE user_id = $1 AND team_id = $2",
+		userId,
+		teamId,
+	)
 	if err != nil {
 		return fmt.Errorf("error on delete team member: %w", err)
 	}
