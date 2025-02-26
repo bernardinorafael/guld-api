@@ -49,21 +49,10 @@ func (c controller) RegisterRoute(r *chi.Mux) {
 		r.Get("/{userId}/emails", c.getEmails)
 		// TODO: Move this to a dedicated emails router
 		r.Get("/emails/{emailId}", c.getEmail)
-		r.Patch("/emails/{emailId}/validate", c.validateEmail)
 		r.Post("/{userId}/emails", c.addEmail)
 		r.Delete("/{userId}/emails/{emailId}", c.deleteEmail)
 		r.Patch("/{userId}/emails/{emailId}/set-primary", c.setPrimaryEmail)
-		r.Post("/{userId}/emails/request-validation", c.requestEmailValidation)
 	})
-}
-
-func (c controller) validateEmail(w http.ResponseWriter, r *http.Request) {
-	if err := c.svc.ValidateEmail(r.Context(), chi.URLParam(r, "emailId")); err != nil {
-		NewHttpError(w, err)
-		return
-	}
-
-	util.WriteSuccessResponse(w, http.StatusOK)
 }
 
 func (c controller) getEmail(w http.ResponseWriter, r *http.Request) {
@@ -74,25 +63,6 @@ func (c controller) getEmail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	util.WriteJSONResponse(w, http.StatusOK, map[string]any{"email": email})
-}
-
-func (c controller) requestEmailValidation(w http.ResponseWriter, r *http.Request) {
-	var body struct {
-		Email string `json:"email"`
-	}
-
-	if err := util.ReadRequestBody(w, r, &body); err != nil {
-		NewHttpError(w, err)
-		return
-	}
-
-	err := c.svc.RequestEmailValidation(c.ctx, body.Email, chi.URLParam(r, "userId"))
-	if err != nil {
-		NewHttpError(w, err)
-		return
-	}
-
-	util.WriteSuccessResponse(w, http.StatusOK)
 }
 
 func (c controller) setPrimaryEmail(w http.ResponseWriter, r *http.Request) {

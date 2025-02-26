@@ -56,6 +56,11 @@ func NewEmail(userId, email string) (*Email, error) {
 	return e, nil
 }
 
+func (e *Email) Verify() {
+	e.isVerified = true
+	e.updated = time.Now()
+}
+
 func (e *Email) Store() Entity {
 	return Entity{
 		ID:         e.ID(),

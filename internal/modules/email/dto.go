@@ -4,3 +4,13 @@ type CreateParams struct {
 	UserID string `json:"user_id"`
 	Email  string `json:"email"`
 }
+
+type ValidateEmailDTO struct {
+	EmailID string `json:"email_id"`
+	Code    string `json:"code"`
+}
+
+type GenerateEmailValidationDTO struct {
+	EmailID string `json:"email_id"`
+	UserID  string `json:"user_id"`
+}

@@ -20,8 +20,6 @@ type ServiceInterface interface {
 	DeleteEmail(ctx context.Context, userId, emailId string) error
 	SetPrimaryEmail(ctx context.Context, userId, emailId string) error
 	FindEmail(ctx context.Context, email string) (*email.Entity, error)
-	RequestEmailValidation(ctx context.Context, email, userId string) error
-	ValidateEmail(ctx context.Context, emailId string) error
 }
 
 type RepositoryInterface interface {

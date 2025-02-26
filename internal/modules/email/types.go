@@ -12,10 +12,12 @@ type Entity struct {
 	Updated    time.Time `json:"updated" db:"updated"`
 }
 
-type Validation struct {
+type ValidationEntity struct {
 	ID         string    `json:"id" db:"id"`
 	EmailID    string    `json:"email_id" db:"email_id"`
 	Attempts   int       `json:"attempts" db:"attempts"`
+	Code       string    `json:"code" db:"code"`
+	UserID     string    `json:"user_id" db:"user_id"`
 	IsConsumed bool      `json:"is_consumed" db:"is_consumed"`
 	IsValid    bool      `json:"is_valid" db:"is_valid"`
 	Created    time.Time `json:"created" db:"created"`

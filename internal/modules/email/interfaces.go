@@ -12,10 +12,10 @@ type RepositoryInterface interface {
 	FindAllByUser(ctx context.Context, userId string) ([]Entity, error)
 	Delete(ctx context.Context, userId, emailId string) error
 
-	InsertValidation(ctx context.Context, v Validation) error
-	UpdateValidation(ctx context.Context, v Validation) error
-	FindValidationByEmailID(ctx context.Context, emailId string) (*Validation, error)
-	FindValidationByEmail(ctx context.Context, email string) (*Validation, error)
+	InsertCodeValidation(ctx context.Context, entity ValidationEntity) error
+	UpdateCodeValidation(ctx context.Context, entity ValidationEntity) error
+	FindCodeValidationByEmailId(ctx context.Context, emailId string) (*ValidationEntity, error)
+	FindAllCodesByUser(ctx context.Context, userId string) ([]ValidationEntity, error)
 }
 
 type ServiceInterface interface {
@@ -26,8 +26,7 @@ type ServiceInterface interface {
 	Update(ctx context.Context, entity Entity) (*Entity, error)
 	Delete(ctx context.Context, userId, emailId string) error
 
-	InsertValidation(ctx context.Context, v Validation) error
-	UpdateValidation(ctx context.Context, v Validation) error
-	FindValidationByEmailID(ctx context.Context, emailId string) (*Validation, error)
-	FindValidationByEmail(ctx context.Context, email string) (*Validation, error)
+	GenerateValidationCode(ctx context.Context, dto GenerateEmailValidationDTO) error
+	ValidateEmail(ctx context.Context, dto ValidateEmailDTO) error
+	FindActiveCodesByUser(ctx context.Context, userId string) ([]ValidationEntity, error)
 }

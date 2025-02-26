@@ -19,6 +19,7 @@ const (
 	InternalServerError     ErrorCode = "INTERNAL_SERVER_ERROR"
 	BadRequest              ErrorCode = "BAD_REQUEST"
 	DBResourceNotFound      ErrorCode = "DB_RESOURCE_NOT_FOUND"
+	ResourceNotFound        ErrorCode = "RESOURCE_NOT_FOUND"
 	ValidationField         ErrorCode = "VALIDATION_FIELD"
 	InvalidPassword         ErrorCode = "INVALID_PASSWORD"
 	ResourceAlreadyTaken    ErrorCode = "RESOURCE_ALREADY_TAKEN"

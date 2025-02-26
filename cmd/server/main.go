@@ -73,7 +73,7 @@ func main() {
 	orgRepo := org.NewRepo(db.GetDB())
 
 	// Services
-	emailService := email.NewService(log, emailRepo)
+	emailService := email.NewService(log, emailRepo, mailer)
 
 	accService := account.NewService(ctx, log, accRepo, mailer, env.JWTSecret)
 	permService := permission.NewService(log, permRepo)
@@ -83,6 +83,7 @@ func main() {
 	orgService := org.NewService(log, orgRepo)
 
 	// Controllers
+	email.NewController(ctx, log, emailService, env.JWTSecret).RegisterRoute(r)
 	permission.NewController(ctx, log, permService, env.JWTSecret).RegisterRoute(r)
 	team.NewController(ctx, log, teamService, env.JWTSecret).RegisterRoute(r)
 	user.NewController(ctx, log, userService, env.JWTSecret).RegisterRoute(r)
