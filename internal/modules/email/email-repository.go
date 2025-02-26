@@ -36,7 +36,7 @@ func (r repo) Insert(ctx context.Context, email Entity) error {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
-	sql := `
+	var query = `
 		INSERT INTO emails (
 			id,
 			user_id,
@@ -55,7 +55,7 @@ func (r repo) Insert(ctx context.Context, email Entity) error {
 			:updated
 		)
 	`
-	_, err := r.db.NamedExecContext(ctx, sql, email)
+	_, err := r.db.NamedExecContext(ctx, query, email)
 	if err != nil {
 		return fmt.Errorf("failed to insert email: %w", err)
 	}
@@ -114,13 +114,12 @@ func (r repo) FindByID(ctx context.Context, emailId string) (*Entity, error) {
 	return &email, nil
 }
 
-// Update updates only 3 fields: is_primary, is_verified and updated
 func (r repo) Update(ctx context.Context, entity Entity) error {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
 	entity.Updated = time.Now()
-	sql := `
+	var query = `
 		UPDATE emails
 		SET
 			is_primary = :is_primary,
@@ -128,7 +127,7 @@ func (r repo) Update(ctx context.Context, entity Entity) error {
 			updated = :updated
 		WHERE id = :id
 	`
-	if _, err := r.db.NamedExecContext(ctx, sql, entity); err != nil {
+	if _, err := r.db.NamedExecContext(ctx, query, entity); err != nil {
 		return fmt.Errorf("failed to update email: %w", err)
 	}
 

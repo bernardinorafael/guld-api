@@ -29,4 +29,5 @@ type ServiceInterface interface {
 	GenerateValidationCode(ctx context.Context, dto GenerateEmailValidationDTO) error
 	ValidateEmail(ctx context.Context, dto ValidateEmailDTO) error
 	FindActiveCodesByUser(ctx context.Context, userId string) ([]ValidationEntity, error)
+	DeleteEmail(ctx context.Context, userId, emailId string) error
 }

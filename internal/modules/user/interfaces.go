@@ -16,7 +16,6 @@ type ServiceInterface interface {
 
 	// Emails methods
 	FindAllEmails(ctx context.Context, userId string) ([]email.Entity, error)
-	DeleteEmail(ctx context.Context, userId, emailId string) error
 	SetPrimaryEmail(ctx context.Context, userId, emailId string) error
 	FindEmail(ctx context.Context, email string) (*email.Entity, error)
 }

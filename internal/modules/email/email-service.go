@@ -47,8 +47,19 @@ func (s svc) AddEmail(ctx context.Context, dto CreateEmailDTO) error {
 	toStore := email.Store()
 
 	if err := s.repo.Insert(ctx, toStore); err != nil {
-		s.log.Errorw(ctx, "failed to insert email", logger.Err(err))
-		return NewBadRequestError("failed to insert email", err)
+		var pqErr *pq.Error
+		// 23505 is the code for unique constraint violation
+		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
+			msg := "email already exists"
+			var appErr = NewConflictError(msg, ResourceAlreadyTaken, err, nil)
+			field := util.ExtractFieldFromDetail(pqErr.Detail)
+			s.log.Errorw(ctx, msg, logger.Err(err))
+			appErr.AddField(field, field+" already exists")
+			return appErr
+		}
+
+		s.log.Errorw(ctx, "failed to create email", logger.Err(err))
+		return NewBadRequestError("failed to create email", err)
 	}
 
 	if dto.SendCode {
@@ -110,32 +121,6 @@ func (s svc) FindByID(ctx context.Context, emailId string) (*Entity, error) {
 	return foundEmail, nil
 }
 
-func (s svc) Create(ctx context.Context, dto CreateParams) (*Entity, error) {
-	email, err := NewEmail(dto.UserID, dto.Email)
-	if err != nil {
-		s.log.Errorw(ctx, "failed to create email", logger.Err(err))
-		return nil, NewBadRequestError("failed to create email", err)
-	}
-	toStore := email.Store()
-
-	if err := s.repo.Insert(ctx, toStore); err != nil {
-		var pqErr *pq.Error
-		// 23505 is the code for unique constraint violation
-		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
-			msg := "email already exists"
-			var appErr = NewConflictError(msg, ResourceAlreadyTaken, err, nil)
-			field := util.ExtractFieldFromDetail(pqErr.Detail)
-			s.log.Errorw(ctx, msg, logger.Err(err))
-			appErr.AddField(field, field+" already exists")
-			return nil, appErr
-		}
-		s.log.Errorw(ctx, "failed to create email", logger.Err(err))
-		return nil, NewBadRequestError("failed to create email", err)
-	}
-
-	return &toStore, nil
-}
-
 func (s svc) Update(ctx context.Context, entity Entity) (*Entity, error) {
 	if err := s.repo.Update(ctx, entity); err != nil {
 		s.log.Errorw(ctx, "failed to update email", logger.Err(err))
@@ -143,4 +128,14 @@ func (s svc) Update(ctx context.Context, entity Entity) (*Entity, error) {
 	}
 
 	return &entity, nil
+}
+
+func (s svc) DeleteEmail(ctx context.Context, userId, emailId string) error {
+	err := s.repo.Delete(ctx, userId, emailId)
+	if err != nil {
+		s.log.Errorw(ctx, "failed to delete email", logger.Err(err))
+		return NewBadRequestError("failed to delete email", nil)
+	}
+
+	return nil
 }

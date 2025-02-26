@@ -48,7 +48,6 @@ func (c controller) RegisterRoute(r *chi.Mux) {
 		r.Get("/{userId}/emails", c.getEmails)
 		// TODO: Move this to a dedicated emails router
 		r.Get("/emails/{emailId}", c.getEmail)
-		r.Delete("/{userId}/emails/{emailId}", c.deleteEmail)
 		r.Patch("/{userId}/emails/{emailId}/set-primary", c.setPrimaryEmail)
 	})
 }
@@ -65,19 +64,6 @@ func (c controller) getEmail(w http.ResponseWriter, r *http.Request) {
 
 func (c controller) setPrimaryEmail(w http.ResponseWriter, r *http.Request) {
 	if err := c.svc.SetPrimaryEmail(
-		c.ctx,
-		chi.URLParam(r, "userId"),
-		chi.URLParam(r, "emailId"),
-	); err != nil {
-		NewHttpError(w, err)
-		return
-	}
-
-	util.WriteSuccessResponse(w, http.StatusOK)
-}
-
-func (c controller) deleteEmail(w http.ResponseWriter, r *http.Request) {
-	if err := c.svc.DeleteEmail(
 		c.ctx,
 		chi.URLParam(r, "userId"),
 		chi.URLParam(r, "emailId"),
