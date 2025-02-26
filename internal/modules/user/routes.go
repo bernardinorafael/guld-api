@@ -7,7 +7,6 @@ import (
 	. "github.com/bernardinorafael/internal/_shared/errors"
 	"github.com/bernardinorafael/internal/_shared/util"
 	"github.com/bernardinorafael/internal/infra/http/middleware"
-	"github.com/bernardinorafael/internal/modules/email"
 	"github.com/bernardinorafael/pkg/logger"
 	"github.com/go-chi/chi"
 )
@@ -49,7 +48,6 @@ func (c controller) RegisterRoute(r *chi.Mux) {
 		r.Get("/{userId}/emails", c.getEmails)
 		// TODO: Move this to a dedicated emails router
 		r.Get("/emails/{emailId}", c.getEmail)
-		r.Post("/{userId}/emails", c.addEmail)
 		r.Delete("/{userId}/emails/{emailId}", c.deleteEmail)
 		r.Patch("/{userId}/emails/{emailId}/set-primary", c.setPrimaryEmail)
 	})
@@ -99,23 +97,6 @@ func (c controller) getEmails(w http.ResponseWriter, r *http.Request) {
 	}
 
 	util.WriteJSONResponse(w, http.StatusOK, map[string]any{"emails": emails})
-}
-
-func (c controller) addEmail(w http.ResponseWriter, r *http.Request) {
-	var body email.CreateParams
-	body.UserID = chi.URLParam(r, "userId")
-
-	if err := util.ReadRequestBody(w, r, &body); err != nil {
-		NewHttpError(w, err)
-		return
-	}
-
-	if err := c.svc.AddEmail(c.ctx, body); err != nil {
-		NewHttpError(w, err)
-		return
-	}
-
-	util.WriteSuccessResponse(w, http.StatusOK)
 }
 
 func (c controller) toggleLock(w http.ResponseWriter, r *http.Request) {

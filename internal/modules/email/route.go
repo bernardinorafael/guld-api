@@ -37,6 +37,8 @@ func (c controller) RegisterRoute(r *chi.Mux) {
 
 	r.Route("/api/v1/emails", func(r chi.Router) {
 		r.Use(m.WithAuth)
+
+		r.Post("/{userId}", c.create)
 	})
 
 	r.Route("/api/v1/emails/validations", func(r chi.Router) {
@@ -45,6 +47,25 @@ func (c controller) RegisterRoute(r *chi.Mux) {
 		r.Post("/", c.requestValidation)
 		r.Post("/{emailId}", c.validateEmail)
 	})
+}
+
+func (c controller) create(w http.ResponseWriter, r *http.Request) {
+	var body CreateEmailDTO
+	body.UserID = chi.URLParam(r, "userId")
+
+	err := util.ReadRequestBody(w, r, &body)
+	if err != nil {
+		errors.NewHttpError(w, err)
+		return
+	}
+
+	err = c.svc.AddEmail(c.ctx, body)
+	if err != nil {
+		errors.NewHttpError(w, err)
+		return
+	}
+
+	util.WriteSuccessResponse(w, http.StatusOK)
 }
 
 func (c controller) validateEmail(w http.ResponseWriter, r *http.Request) {

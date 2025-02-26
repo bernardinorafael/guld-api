@@ -19,12 +19,12 @@ type RepositoryInterface interface {
 }
 
 type ServiceInterface interface {
-	Create(ctx context.Context, dto CreateParams) (*Entity, error)
 	FindAllByUser(ctx context.Context, userId string) ([]Entity, error)
 	FindByEmail(ctx context.Context, email string) (*Entity, error)
 	FindByID(ctx context.Context, emailId string) (*Entity, error)
 	Update(ctx context.Context, entity Entity) (*Entity, error)
 	Delete(ctx context.Context, userId, emailId string) error
+	AddEmail(ctx context.Context, dto CreateEmailDTO) error
 
 	GenerateValidationCode(ctx context.Context, dto GenerateEmailValidationDTO) error
 	ValidateEmail(ctx context.Context, dto ValidateEmailDTO) error

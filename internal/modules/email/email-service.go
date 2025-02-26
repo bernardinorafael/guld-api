@@ -21,6 +21,48 @@ func NewService(log logger.Logger, repo RepositoryInterface, mailer mailer.Maile
 	return &svc{log, repo, mailer}
 }
 
+func (s svc) AddEmail(ctx context.Context, dto CreateEmailDTO) error {
+	emails, err := s.FindAllByUser(ctx, dto.UserID)
+	if err != nil {
+		return err
+	}
+
+	if len(emails) >= maxEmailAndPhoneByUser {
+		s.log.Info(ctx, "max emails reached")
+		return NewForbiddenError("max emails reached", MaxLimitResourceReached, nil)
+	}
+
+	for _, v := range emails {
+		if v.Email == dto.Email {
+			return NewConflictError("email already taken", ResourceAlreadyTaken, nil,
+				[]Field{{Field: "email", Msg: "email already taken"}},
+			)
+		}
+	}
+
+	email, err := NewEmail(dto.UserID, dto.Email)
+	if err != nil {
+		return NewBadRequestError("error on create email", err)
+	}
+	toStore := email.Store()
+
+	if err := s.repo.Insert(ctx, toStore); err != nil {
+		s.log.Errorw(ctx, "failed to insert email", logger.Err(err))
+		return NewBadRequestError("failed to insert email", err)
+	}
+
+	if dto.SendCode {
+		if err := s.GenerateValidationCode(ctx, GenerateEmailValidationDTO{
+			EmailID: email.ID(),
+			UserID:  dto.UserID,
+		}); err != nil {
+			s.log.Errorw(ctx, "failed to generate validation code", logger.Err(err))
+		}
+	}
+
+	return nil
+}
+
 func (s svc) Delete(ctx context.Context, userId, emailId string) error {
 	if err := s.repo.Delete(ctx, userId, emailId); err != nil {
 		s.log.Errorw(ctx, "failed to delete email", logger.Err(err))

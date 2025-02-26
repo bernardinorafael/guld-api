@@ -15,7 +15,6 @@ type ServiceInterface interface {
 	ToggleLock(ctx context.Context, userId string) error
 
 	// Emails methods
-	AddEmail(ctx context.Context, dto email.CreateParams) error
 	FindAllEmails(ctx context.Context, userId string) ([]email.Entity, error)
 	DeleteEmail(ctx context.Context, userId, emailId string) error
 	SetPrimaryEmail(ctx context.Context, userId, emailId string) error

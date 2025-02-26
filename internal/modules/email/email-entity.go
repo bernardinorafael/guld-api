@@ -8,6 +8,10 @@ import (
 	"github.com/bernardinorafael/internal/_shared/util"
 )
 
+const (
+	maxEmailAndPhoneByUser = 3
+)
+
 type Email struct {
 	id         string
 	userId     string
