@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	. "github.com/bernardinorafael/internal/_shared/errors"
+	"github.com/bernardinorafael/internal/infra/http/middleware"
 	"github.com/bernardinorafael/internal/modules/user"
 	"github.com/bernardinorafael/pkg/logger"
 	"github.com/bernardinorafael/pkg/pagination"
@@ -23,10 +24,8 @@ func (s svc) GetAll(
 	// Ignoring `-` preffix on verify sort opts
 	sort := strings.TrimPrefix(dto.Sort, "-")
 	if !safeSort[sort] {
-		msg := "invalid sort params"
-		s.log.Errorw(ctx, msg, logger.Err(fmt.Errorf("invalid sort params: %s", dto.Sort)))
 		return nil, NewValidationFieldError(
-			msg,
+			"invalid sort params",
 			fmt.Errorf("invalid sort params: %s", dto.Sort),
 			[]Field{
 				{Field: "sort", Msg: "invalid sort params"},
@@ -34,12 +33,26 @@ func (s svc) GetAll(
 		)
 	}
 
-	users, totalItems, err := s.userRepo.GetAll(ctx, dto)
+	rawUsers, totalItems, err := s.userRepo.GetAll(ctx, dto)
 	if err != nil {
-		msg := "failed to retrieve users"
-		s.log.Errorw(ctx, msg, logger.Err(err))
-		return nil, NewBadRequestError(msg, err)
+		s.log.Errorw(ctx, "failed to retrieve users", logger.Err(err))
+		return nil, NewBadRequestError("failed to retrieve users", err)
 	}
+
+	userInCtx, ok := ctx.Value(middleware.UserIDKey).(string)
+	if !ok {
+		return nil, NewBadRequestError("failed to retrieve user id", err)
+	}
+
+	// Filter out the user in context
+	// TODO: Move this to repository
+	users := make([]user.EntityWithTeam, 0)
+	for _, u := range rawUsers {
+		if u.ID != userInCtx {
+			users = append(users, u)
+		}
+	}
+	totalItems--
 
 	// This is a workaround to avoid null json on team field
 	for i := range users {

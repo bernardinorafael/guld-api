@@ -144,7 +144,7 @@ func (c controller) getAllUsers(w http.ResponseWriter, r *http.Request) {
 	p.Page = util.ReadQueryInt(r.URL.Query(), "page", 1)
 	p.Sort = util.ReadQueryString(r.URL.Query(), "sort", "created")
 
-	res, err := c.svc.GetAll(c.ctx, p)
+	res, err := c.svc.GetAll(r.Context(), p)
 	if err != nil {
 		NewHttpError(w, err)
 		return
