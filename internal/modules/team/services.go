@@ -134,8 +134,6 @@ func (s *svc) AddMember(ctx context.Context, input AddMemberParams) error {
 		Updated: time.Now(),
 	}
 
-	util.PrintJSON(member)
-
 	err = s.repo.InsertMember(ctx, member)
 	if err != nil {
 		var pqErr *pq.Error

@@ -14,7 +14,7 @@ import (
 func (s svc) GetAll(
 	ctx context.Context,
 	dto user.UserSearchParams,
-) (*pagination.Paginated[user.Entity], error) {
+) (*pagination.Paginated[user.EntityWithTeam], error) {
 	safeSort := map[string]bool{
 		"full_name": true,
 		"username":  true,
@@ -39,6 +39,13 @@ func (s svc) GetAll(
 		msg := "failed to retrieve users"
 		s.log.Errorw(ctx, msg, logger.Err(err))
 		return nil, NewBadRequestError(msg, err)
+	}
+
+	// This is a workaround to avoid null json on team field
+	for i := range users {
+		if users[i].Team.ID == nil {
+			users[i].Team = nil
+		}
 	}
 
 	paginated := pagination.New(users, totalItems, dto.Page, dto.Limit)

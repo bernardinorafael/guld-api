@@ -18,6 +18,16 @@ type PartialEntity struct {
 	Locked       *bool   `db:"locked"`
 }
 
+type Team struct {
+	ID   *string `json:"id" db:"id"`
+	Name *string `json:"name" db:"name"`
+}
+
+type EntityWithTeam struct {
+	Entity
+	Team *Team `json:"team" db:"team,json"`
+}
+
 type Entity struct {
 	ID           string    `json:"id" db:"id"`
 	FullName     string    `json:"full_name" db:"full_name"`
