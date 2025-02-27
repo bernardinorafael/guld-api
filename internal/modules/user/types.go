@@ -6,18 +6,6 @@ import (
 	"github.com/bernardinorafael/internal/modules/email"
 )
 
-type PartialEntity struct {
-	ID string `db:"id"`
-
-	FullName     *string `db:"full_name"`
-	Username     *string `db:"username"`
-	PhoneNumber  *string `db:"phone_number"`
-	EmailAddress *string `db:"email_address"`
-	AvatarURL    *string `db:"avatar_url"`
-	Banned       *bool   `db:"banned"`
-	Locked       *bool   `db:"locked"`
-}
-
 type Team struct {
 	ID   *string `json:"id" db:"id"`
 	Name *string `json:"name" db:"name"`

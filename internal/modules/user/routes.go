@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/bernardinorafael/internal/_shared/dto"
 	. "github.com/bernardinorafael/internal/_shared/errors"
 	"github.com/bernardinorafael/internal/_shared/util"
 	"github.com/bernardinorafael/internal/infra/http/middleware"
@@ -41,15 +42,36 @@ func (c controller) RegisterRoute(r *chi.Mux) {
 		// Users
 		r.Get("/", c.getAllUsers)
 		r.Post("/", c.create)
-		r.Get("/{id}", c.getUser)
-		r.Delete("/{id}", c.delete)
+		r.Get("/{userId}", c.getUser)
+		r.Delete("/{userId}", c.delete)
 		r.Patch("/{userId}/toggle-lock", c.toggleLock)
+		r.Patch("/{userId}/profile", c.updateProfile)
+
 		// Emails
-		r.Get("/{userId}/emails", c.getEmails)
 		// TODO: Move this to a dedicated emails router
-		r.Get("/emails/{emailId}", c.getEmail)
+		r.Get("/{userId}/emails", c.getEmails)
 		r.Patch("/{userId}/emails/{emailId}/set-primary", c.setPrimaryEmail)
+		r.Get("/emails/{emailId}", c.getEmail)
 	})
+}
+
+func (c controller) updateProfile(w http.ResponseWriter, r *http.Request) {
+	var body UpdateProfileDTO
+	var userId = chi.URLParam(r, "userId")
+
+	err := util.ReadRequestBody(w, r, &body)
+	if err != nil {
+		NewHttpError(w, err)
+		return
+	}
+
+	err = c.svc.UpdateProfile(c.ctx, userId, body)
+	if err != nil {
+		NewHttpError(w, err)
+		return
+	}
+
+	util.WriteSuccessResponse(w, http.StatusOK)
 }
 
 func (c controller) getEmail(w http.ResponseWriter, r *http.Request) {
@@ -95,7 +117,7 @@ func (c controller) toggleLock(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c controller) delete(w http.ResponseWriter, r *http.Request) {
-	if err := c.svc.Delete(c.ctx, chi.URLParam(r, "id")); err != nil {
+	if err := c.svc.Delete(c.ctx, chi.URLParam(r, "userId")); err != nil {
 		NewHttpError(w, err)
 		return
 	}
@@ -104,7 +126,7 @@ func (c controller) delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c controller) create(w http.ResponseWriter, r *http.Request) {
-	var body UserRegisterParams
+	var body UserRegisterDTO
 
 	if err := util.ReadRequestBody(w, r, &body); err != nil {
 		NewHttpError(w, err)
@@ -123,7 +145,7 @@ func (c controller) create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c controller) getUser(w http.ResponseWriter, r *http.Request) {
-	res, err := c.svc.FindByID(c.ctx, chi.URLParam(r, "id"))
+	res, err := c.svc.FindByID(c.ctx, chi.URLParam(r, "userId"))
 	if err != nil {
 		NewHttpError(w, err)
 		return
@@ -137,7 +159,7 @@ func (c controller) getUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c controller) getAllUsers(w http.ResponseWriter, r *http.Request) {
-	var p UserSearchParams
+	var p dto.SearchParams
 
 	p.Query = util.ReadQueryString(r.URL.Query(), "q", "")
 	p.Limit = util.ReadQueryInt(r.URL.Query(), "limit", 25)

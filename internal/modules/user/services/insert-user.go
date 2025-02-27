@@ -11,7 +11,7 @@ import (
 	"github.com/lib/pq"
 )
 
-func (s svc) Create(ctx context.Context, dto user.UserRegisterParams) (userId string, err error) {
+func (s svc) Create(ctx context.Context, dto user.UserRegisterDTO) (userId string, err error) {
 	newUser, err := user.NewUser(dto.FullName, dto.Username, dto.PhoneNumber, dto.EmailAddress)
 	if err != nil {
 		// TODO: add fields to error

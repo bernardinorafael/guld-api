@@ -153,6 +153,7 @@ func (u *User) ChangeName(name string) error {
 		return err
 	}
 
+	u.fullName = name
 	u.updated = time.Now()
 	return nil
 }
@@ -162,6 +163,7 @@ func (u *User) ChangeUsername(username string) error {
 		return err
 	}
 
+	u.username = username
 	u.updated = time.Now()
 	return nil
 }

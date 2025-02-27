@@ -6,8 +6,6 @@ import (
 
 	. "github.com/bernardinorafael/internal/_shared/errors"
 	"github.com/bernardinorafael/internal/modules/email"
-	"github.com/bernardinorafael/internal/modules/user"
-	"github.com/bernardinorafael/pkg/logger"
 )
 
 /*
@@ -59,15 +57,15 @@ func (s svc) SetPrimaryEmail(ctx context.Context, userId, emailId string) error 
 		}
 	}
 
-	err = s.userRepo.Update(ctx, user.PartialEntity{
-		ID:           userId,
-		EmailAddress: &nextPrimary.Email,
-	})
-	if err != nil {
-		msg := "error on updating user email"
-		s.log.Errorw(ctx, msg, logger.Err(err))
-		return NewBadRequestError(msg, err)
-	}
+	// err = s.userRepo.Update(ctx, user.Entity{
+	// 	ID:           userId,
+	// 	EmailAddress: &nextPrimary.Email,
+	// })
+	// if err != nil {
+	// 	msg := "error on updating user email"
+	// 	s.log.Errorw(ctx, msg, logger.Err(err))
+	// 	return NewBadRequestError(msg, err)
+	// }
 
 	return nil
 }

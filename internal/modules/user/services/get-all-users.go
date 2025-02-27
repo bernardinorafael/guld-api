@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/bernardinorafael/internal/_shared/dto"
 	. "github.com/bernardinorafael/internal/_shared/errors"
 	"github.com/bernardinorafael/internal/infra/http/middleware"
 	"github.com/bernardinorafael/internal/modules/user"
@@ -14,7 +15,7 @@ import (
 
 func (s svc) GetAll(
 	ctx context.Context,
-	dto user.UserSearchParams,
+	dto dto.SearchParams,
 ) (*pagination.Paginated[user.EntityWithTeam], error) {
 	safeSort := map[string]bool{
 		"full_name": true,

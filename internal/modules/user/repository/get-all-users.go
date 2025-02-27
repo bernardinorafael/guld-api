@@ -6,10 +6,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bernardinorafael/internal/_shared/dto"
 	"github.com/bernardinorafael/internal/modules/user"
 )
 
-func (r repo) GetAll(ctx context.Context, params user.UserSearchParams) ([]user.EntityWithTeam, int, error) {
+func (r repo) GetAll(ctx context.Context, params dto.SearchParams) ([]user.EntityWithTeam, int, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
