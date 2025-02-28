@@ -185,6 +185,8 @@ func (u *User) ChangeUsername(username string) error {
 	}
 
 	u.username = username
+	u.usernameLastUpdated = time.Now()
+	u.usernameLockoutEnd = time.Now().Add(usernameLockoutDuration)
 	u.updated = time.Now()
 	return nil
 }
