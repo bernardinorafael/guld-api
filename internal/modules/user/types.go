@@ -17,16 +17,19 @@ type EntityWithTeam struct {
 }
 
 type Entity struct {
-	ID           string    `json:"id" db:"id"`
-	FullName     string    `json:"full_name" db:"full_name"`
-	Username     string    `json:"username" db:"username"`
-	PhoneNumber  string    `json:"phone_number" db:"phone_number"`
-	EmailAddress string    `json:"email_address" db:"email_address"`
-	AvatarURL    *string   `json:"avatar_url" db:"avatar_url"`
-	Banned       bool      `json:"banned" db:"banned"`
-	Locked       bool      `json:"locked" db:"locked"`
-	Created      time.Time `json:"created" db:"created"`
-	Updated      time.Time `json:"updated" db:"updated"`
+	ID           string  `json:"id" db:"id"`
+	FullName     string  `json:"full_name" db:"full_name"`
+	Username     string  `json:"username" db:"username"`
+	PhoneNumber  string  `json:"phone_number" db:"phone_number"`
+	EmailAddress string  `json:"email_address" db:"email_address"`
+	AvatarURL    *string `json:"avatar_url" db:"avatar_url"`
+	Banned       bool    `json:"banned" db:"banned"`
+	Locked       bool    `json:"locked" db:"locked"`
+
+	UsernameLastUpdated time.Time `json:"username_last_updated" db:"username_last_updated"`
+	UsernameLockoutEnd  time.Time `json:"username_lockout_end" db:"username_lockout_end"`
+	Created             time.Time `json:"created" db:"created"`
+	Updated             time.Time `json:"updated" db:"updated"`
 }
 
 type CompleteEntity struct {

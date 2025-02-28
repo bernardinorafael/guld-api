@@ -23,6 +23,7 @@ const (
 	ValidationField         ErrorCode = "VALIDATION_FIELD"
 	InvalidPassword         ErrorCode = "INVALID_PASSWORD"
 	ResourceAlreadyTaken    ErrorCode = "RESOURCE_ALREADY_TAKEN"
+	LockedResource          ErrorCode = "LOCKED_RESOURCE"
 	InvalidCredentials      ErrorCode = "INVALID_CREDENTIALS"
 	DisabledAccount         ErrorCode = "DISABLED_ACCOUNT"
 	ExpiredLink             ErrorCode = "EXPIRED_LINK"

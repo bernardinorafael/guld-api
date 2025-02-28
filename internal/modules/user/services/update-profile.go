@@ -2,6 +2,7 @@ package usersvc
 
 import (
 	"context"
+	"errors"
 
 	. "github.com/bernardinorafael/internal/_shared/errors"
 
@@ -14,22 +15,25 @@ func (s svc) UpdateProfile(ctx context.Context, userId string, dto user.UpdatePr
 		return NewNotFoundError("failed to retrieve user", err)
 	}
 
-	user, err := user.NewFromEntity(*foundUser)
+	userEntity, err := user.NewFromEntity(*foundUser)
 	if err != nil {
 		return NewValidationFieldError("error on init user entity", err, nil)
 	}
 
-	err = user.ChangeUsername(dto.Username)
+	err = userEntity.ChangeUsername(dto.Username)
+	if err != nil {
+		if errors.Is(err, user.ErrUsernameLocked) {
+			return NewForbiddenError("username is locked", LockedResource, err)
+		}
+		return NewBadRequestError("error on update profile", err)
+	}
+
+	err = userEntity.ChangeName(dto.FullName)
 	if err != nil {
 		return NewBadRequestError("error on update profile", err)
 	}
 
-	err = user.ChangeName(dto.FullName)
-	if err != nil {
-		return NewBadRequestError("error on update profile", err)
-	}
-
-	err = s.userRepo.Update(ctx, user.Store())
+	err = s.userRepo.Update(ctx, userEntity.Store())
 	if err != nil {
 		return NewBadRequestError("error on update profile", err)
 	}

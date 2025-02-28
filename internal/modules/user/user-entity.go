@@ -10,6 +10,8 @@ import (
 
 const (
 	minNameLength = 3
+	// username lockout duration - 90 days
+	usernameLockoutDuration = 90 * 24 * time.Hour
 )
 
 var (
@@ -17,10 +19,9 @@ var (
 	ErrInvalidFullNameLength = fmt.Errorf("full name must be at least %d characters long", minNameLength)
 	ErrInvalidFullName       = errors.New("incorrect name, must contain valid first and last name")
 	ErrEmptyFullName         = errors.New("full name is a required field")
-
 	// Username validation errors
-	ErrEmptyUsername = errors.New("username is a required field")
-
+	ErrEmptyUsername  = errors.New("username is a required field")
+	ErrUsernameLocked = errors.New("username is locked for update")
 	// ID validation errors
 	ErrInvalidID = errors.New("invalid ksuid format")
 )
@@ -34,8 +35,11 @@ type User struct {
 	avatarURL    *string
 	banned       bool
 	locked       bool
-	created      time.Time
-	updated      time.Time
+
+	usernameLastUpdated time.Time
+	usernameLockoutEnd  time.Time
+	created             time.Time
+	updated             time.Time
 }
 
 // NewFromEntity creates a new user entity from an existing one
@@ -49,8 +53,11 @@ func NewFromEntity(u Entity) (*User, error) {
 		avatarURL:    u.AvatarURL,
 		banned:       u.Banned,
 		locked:       u.Locked,
-		created:      u.Created,
-		updated:      u.Updated,
+
+		usernameLastUpdated: u.UsernameLastUpdated,
+		usernameLockoutEnd:  u.UsernameLockoutEnd,
+		created:             u.Created,
+		updated:             u.Updated,
 	}
 
 	if err := user.validate(); err != nil {
@@ -62,6 +69,7 @@ func NewFromEntity(u Entity) (*User, error) {
 
 // NewUser creates a new user entity from scratch
 func NewUser(name, username, phone, email string) (*User, error) {
+
 	user := User{
 		id:           util.GenID("user"),
 		fullName:     name,
@@ -71,8 +79,11 @@ func NewUser(name, username, phone, email string) (*User, error) {
 		avatarURL:    nil,
 		banned:       false,
 		locked:       false,
-		created:      time.Now(),
-		updated:      time.Now(),
+
+		usernameLastUpdated: time.Now(),
+		usernameLockoutEnd:  time.Now().Add(usernameLockoutDuration),
+		created:             time.Now(),
+		updated:             time.Now(),
 	}
 
 	if err := user.validate(); err != nil {
@@ -159,7 +170,17 @@ func (u *User) ChangeName(name string) error {
 }
 
 func (u *User) ChangeUsername(username string) error {
-	if err := u.validate(); err != nil {
+	// if the username is unchanged, do nothing and skip validation
+	if u.username == username {
+		return nil
+	}
+
+	if u.usernameLockoutEnd.After(time.Now()) {
+		return ErrUsernameLocked
+	}
+
+	err := u.validate()
+	if err != nil {
 		return err
 	}
 
@@ -179,29 +200,23 @@ func (u *User) Store() Entity {
 		EmailAddress: u.Email(),
 		Banned:       u.Banned(),
 		Locked:       u.Locked(),
-		Created:      u.Created(),
-		Updated:      u.Updated(),
+
+		UsernameLastUpdated: u.UsernameLastUpdated(),
+		UsernameLockoutEnd:  u.UsernameLockoutEnd(),
+		Created:             u.Created(),
+		Updated:             u.Updated(),
 	}
 }
 
-func (u *User) ID() string         { return u.id }
-func (u *User) FullName() string   { return u.fullName }
-func (u *User) Username() string   { return u.username }
-func (u *User) Email() string      { return u.emailAddress }
-func (u *User) AvatarURL() *string { return u.avatarURL }
-func (u *User) Phone() string      { return u.phoneNumber }
-func (u *User) Banned() bool       { return u.banned }
-func (u *User) Locked() bool       { return u.locked }
-func (u *User) Created() time.Time { return u.created }
-func (u *User) Updated() time.Time { return u.updated }
-
-// func isValidEmail(email string) bool {
-// 	re := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
-// 	return re.MatchString(email)
-// }
-
-// func isValidPhone(phone string) bool {
-// 	// Regex simples para validação de telefone (ajuste conforme necessário)
-// 	re := regexp.MustCompile(`^\+?[1-9]\d{1,14}$`)
-// 	return re.MatchString(phone)
-// }
+func (u *User) ID() string                     { return u.id }
+func (u *User) FullName() string               { return u.fullName }
+func (u *User) Username() string               { return u.username }
+func (u *User) Email() string                  { return u.emailAddress }
+func (u *User) AvatarURL() *string             { return u.avatarURL }
+func (u *User) UsernameLastUpdated() time.Time { return u.usernameLastUpdated }
+func (u *User) UsernameLockoutEnd() time.Time  { return u.usernameLockoutEnd }
+func (u *User) Phone() string                  { return u.phoneNumber }
+func (u *User) Banned() bool                   { return u.banned }
+func (u *User) Locked() bool                   { return u.locked }
+func (u *User) Created() time.Time             { return u.created }
+func (u *User) Updated() time.Time             { return u.updated }

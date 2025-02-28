@@ -15,7 +15,7 @@ func (r repo) FindCompleteByID(ctx context.Context, userId string) (*user.Comple
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
-	usr := user.CompleteEntity{
+	u := user.CompleteEntity{
 		User:   user.Entity{},
 		Emails: []email.Entity{},
 	}
@@ -23,8 +23,8 @@ func (r repo) FindCompleteByID(ctx context.Context, userId string) (*user.Comple
 	err := transaction.ExecTx(ctx, r.db, func(tx *sqlx.Tx) error {
 		err := tx.GetContext(
 			ctx,
-			&usr.User,
-			"SELECT * FROM users WHERE id = $1 ORDER BY created DESC",
+			&u.User,
+			"SELECT * FROM users WHERE id = $1",
 			userId,
 		)
 		if err != nil {
@@ -33,7 +33,7 @@ func (r repo) FindCompleteByID(ctx context.Context, userId string) (*user.Comple
 
 		err = tx.SelectContext(
 			ctx,
-			&usr.Emails,
+			&u.Emails,
 			"SELECT * FROM emails WHERE user_id = $1 ORDER BY created DESC",
 			userId,
 		)
@@ -47,5 +47,5 @@ func (r repo) FindCompleteByID(ctx context.Context, userId string) (*user.Comple
 		return nil, fmt.Errorf("error on find complete user by id: %w", err)
 	}
 
-	return &usr, nil
+	return &u, nil
 }

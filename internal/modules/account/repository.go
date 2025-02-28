@@ -198,13 +198,49 @@ func (r repo) Insert(ctx context.Context, acc EntityWithUser) error {
 	defer cancel()
 
 	err := transaction.ExecTx(ctx, r.db, func(tx *sqlx.Tx) error {
-		_, err := tx.NamedExecContext(ctx, user.InsertUserQuery, acc.User)
+		var query = `
+			INSERT INTO users (
+				id,
+				full_name,
+				username,
+				phone_number,
+				email_address,
+				avatar_url,
+				banned,
+				locked,
+				username_last_updated,
+				username_lockout_end,
+				created,
+				updated
+			) VALUES (
+				:id,
+				:full_name,
+				:username,
+				:phone_number,
+				:email_address,
+				:avatar_url,
+				:banned,
+				:locked,
+				:username_last_updated,
+				:username_lockout_end,
+				:created,
+				:updated
+			)
+		`
+
+		_, err := tx.NamedExecContext(ctx, query, acc.User)
 		if err != nil {
 			return fmt.Errorf("error on insert user: %w", err)
 		}
 
 		emailId := util.GenID("email")
-		_, err = tx.ExecContext(ctx, user.InsertEmailQuery, emailId, acc.User.ID, acc.User.EmailAddress)
+		_, err = tx.ExecContext(
+			ctx,
+			"INSERT INTO emails (id, user_id, email, is_primary, is_verified) VALUES ($1, $2, $3, true, true)",
+			emailId,
+			acc.User.ID,
+			acc.User.EmailAddress,
+		)
 		if err != nil {
 			return fmt.Errorf("error on insert email: %w", err)
 		}

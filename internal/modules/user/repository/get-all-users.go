@@ -28,7 +28,7 @@ func (r repo) GetAll(ctx context.Context, params dto.SearchParams) ([]user.Entit
 		sort = strings.TrimPrefix(sort, "-")
 	}
 
-	sql := fmt.Sprintf(`
+	query := fmt.Sprintf(`
 		SELECT
 			u.*,
 			t.id as "team.id",
@@ -49,7 +49,7 @@ func (r repo) GetAll(ctx context.Context, params dto.SearchParams) ([]user.Entit
 	users := make([]user.EntityWithTeam, 0)
 	skip := (params.Page - 1) * params.Limit
 
-	err = r.db.SelectContext(ctx, &users, sql, params.Limit, skip, params.Query)
+	err = r.db.SelectContext(ctx, &users, query, params.Limit, skip, params.Query)
 	if err != nil {
 		return nil, -1, err
 	}
