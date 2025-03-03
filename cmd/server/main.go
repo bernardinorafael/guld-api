@@ -21,6 +21,7 @@ import (
 	"github.com/bernardinorafael/internal/modules/user"
 	userrepo "github.com/bernardinorafael/internal/modules/user/repository"
 	usersvc "github.com/bernardinorafael/internal/modules/user/services"
+	"github.com/bernardinorafael/internal/uploader"
 	"github.com/bernardinorafael/pkg/logger"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/cors"
@@ -56,6 +57,8 @@ func main() {
 	defer db.Close()
 	log.Info(ctx, "Database connected")
 
+	uploader := uploader.NewUploader(ctx, log)
+
 	mailer := mailer.New(ctx, log, mailer.Config{
 		APIKey:           env.ResendAPIKey,
 		MaxRetries:       3,
@@ -79,7 +82,7 @@ func main() {
 	permService := permission.NewService(log, permRepo)
 	roleService := role.NewService(log, roleRepo)
 	teamService := team.NewService(log, teamRepo)
-	userService := usersvc.New(log, userRepo, emailService, mailer)
+	userService := usersvc.New(log, userRepo, emailService, mailer, uploader)
 	orgService := org.NewService(log, orgRepo)
 
 	// Controllers

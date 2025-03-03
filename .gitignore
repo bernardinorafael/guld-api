@@ -26,3 +26,6 @@ db_data/
 http-client.env.json
 *.http
 .vscode
+
+#aws
+.aws/credentials

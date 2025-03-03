@@ -191,6 +191,11 @@ func (u *User) ChangeUsername(username string) error {
 	return nil
 }
 
+func (u *User) ChangeProfilePicture(url string) {
+	u.avatarURL = &url
+	u.updated = time.Now()
+}
+
 // Store stores the user entity in the database
 func (u *User) Store() Entity {
 	return Entity{

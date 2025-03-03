@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/bernardinorafael/internal/_shared/dto"
@@ -46,6 +47,7 @@ func (c controller) RegisterRoute(r *chi.Mux) {
 		r.Delete("/{userId}", c.delete)
 		r.Patch("/{userId}/toggle-lock", c.toggleLock)
 		r.Patch("/{userId}/profile", c.updateProfile)
+		r.Patch("/{userId}/profile/avatar", c.uploadAvatar)
 
 		// Emails
 		// TODO: Move this to a dedicated emails router
@@ -53,6 +55,30 @@ func (c controller) RegisterRoute(r *chi.Mux) {
 		r.Patch("/{userId}/emails/{emailId}/set-primary", c.setPrimaryEmail)
 		r.Get("/emails/{emailId}", c.getEmail)
 	})
+}
+
+func (c controller) uploadAvatar(w http.ResponseWriter, r *http.Request) {
+	userId := chi.URLParam(r, "userId")
+
+	if err := r.ParseMultipartForm(3 << 20); err != nil {
+		NewHttpError(w, fmt.Errorf("maximum file size is 3MB"))
+		return
+	}
+
+	f, fh, err := r.FormFile("avatar")
+	if err != nil {
+		NewHttpError(w, fmt.Errorf("error processing file: %w", err))
+		return
+	}
+	defer f.Close()
+
+	err = c.svc.UpdateAvatar(c.ctx, userId, f, fh.Filename)
+	if err != nil {
+		NewHttpError(w, err)
+		return
+	}
+
+	util.WriteSuccessResponse(w, http.StatusOK)
 }
 
 func (c controller) updateProfile(w http.ResponseWriter, r *http.Request) {

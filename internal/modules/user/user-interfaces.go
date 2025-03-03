@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"io"
 
 	"github.com/bernardinorafael/internal/_shared/dto"
 	"github.com/bernardinorafael/internal/modules/email"
@@ -19,6 +20,8 @@ type ServiceInterface interface {
 	FindAllEmails(ctx context.Context, userId string) ([]email.Entity, error)
 	SetPrimaryEmail(ctx context.Context, userId, emailId string) error
 	FindEmail(ctx context.Context, email string) (*email.Entity, error)
+
+	UpdateAvatar(ctx context.Context, userId string, file io.Reader, filename string) error
 }
 
 type RepositoryInterface interface {

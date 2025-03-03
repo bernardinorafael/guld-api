@@ -5,21 +5,28 @@ import (
 	"fmt"
 	"net/http"
 
+	"runtime/debug"
+
 	"github.com/bernardinorafael/internal/_shared/errors"
 )
 
-func WithRecoverPanic(done http.Handler) http.Handler {
+func WithRecoverPanic(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if err := recover(); err != nil {
-				fmt.Println("recover-error", err)
-				appErr := errors.NewInternalServerError(fmt.Errorf("%s", err))
+				fmt.Printf("panic recovered: %+v\nStack trace: %s\n", err, debug.Stack())
 
+				w.Header().Set("Content-Type", "application/json")
 				w.Header().Set("Connection", "close")
+
+				appErr := errors.NewInternalServerError(fmt.Errorf("internal server error: %v", err))
 				w.WriteHeader(appErr.StatusCode())
-				_ = json.NewEncoder(w).Encode(appErr)
+
+				if encodeErr := json.NewEncoder(w).Encode(appErr); encodeErr != nil {
+					fmt.Printf("error encoding response: %v\n", encodeErr)
+				}
 			}
 		}()
-		done.ServeHTTP(w, r)
+		next.ServeHTTP(w, r)
 	})
 }
