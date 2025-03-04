@@ -22,13 +22,13 @@ type Entity struct {
 }
 
 type EntityWithUser struct {
-	ID       string      `json:"id" db:"id"`
-	Password string      `json:"password,omitempty" db:"password"`
-	IsActive bool        `json:"is_active" db:"is_active"`
-	User     user.Entity `json:"user" db:"user"`
-	Org      *org.Entity `json:"org" db:"org"`
-	Created  time.Time   `json:"created" db:"created"`
-	Updated  time.Time   `json:"updated" db:"updated"`
+	ID       string                  `json:"id" db:"id"`
+	Password string                  `json:"password,omitempty" db:"password"`
+	IsActive bool                    `json:"is_active" db:"is_active"`
+	User     user.Entity             `json:"user" db:"user"`
+	Org      *org.EntityWithSettings `json:"org" db:"org"`
+	Created  time.Time               `json:"created" db:"created"`
+	Updated  time.Time               `json:"updated" db:"updated"`
 }
 
 type AccountPayload struct {

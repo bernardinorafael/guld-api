@@ -15,7 +15,6 @@ import (
 	"github.com/bernardinorafael/internal/modules/account"
 	"github.com/bernardinorafael/internal/modules/email"
 	"github.com/bernardinorafael/internal/modules/org"
-	"github.com/bernardinorafael/internal/modules/permission"
 	"github.com/bernardinorafael/internal/modules/role"
 	"github.com/bernardinorafael/internal/modules/team"
 	"github.com/bernardinorafael/internal/modules/user"
@@ -70,7 +69,6 @@ func main() {
 	userRepo := userrepo.New(db.GetDB())
 	emailRepo := email.NewRepository(db.GetDB())
 	roleRepo := role.NewRepository(db.GetDB())
-	permRepo := permission.NewRepository(db.GetDB())
 	teamRepo := team.NewRepository(db.GetDB())
 	accRepo := account.NewRepository(db.GetDB())
 	orgRepo := org.NewRepo(db.GetDB())
@@ -79,7 +77,6 @@ func main() {
 	emailService := email.NewService(log, emailRepo, mailer)
 
 	accService := account.NewService(ctx, log, accRepo, mailer, env.JWTSecret)
-	permService := permission.NewService(log, permRepo)
 	roleService := role.NewService(log, roleRepo)
 	teamService := team.NewService(log, teamRepo)
 	userService := usersvc.New(log, userRepo, emailService, mailer, uploader)
@@ -87,7 +84,6 @@ func main() {
 
 	// Controllers
 	email.NewController(ctx, log, emailService, env.JWTSecret).RegisterRoute(r)
-	permission.NewController(ctx, log, permService, env.JWTSecret).RegisterRoute(r)
 	team.NewController(ctx, log, teamService, env.JWTSecret).RegisterRoute(r)
 	user.NewController(ctx, log, userService, env.JWTSecret).RegisterRoute(r)
 	role.NewController(ctx, log, roleService, env.JWTSecret).RegisterRoute(r)
