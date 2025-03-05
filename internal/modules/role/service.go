@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bernardinorafael/internal/_shared/dto"
 	. "github.com/bernardinorafael/internal/_shared/errors"
 	"github.com/bernardinorafael/internal/_shared/util"
 	"github.com/bernardinorafael/pkg/logger"
@@ -54,7 +55,7 @@ func (s *svc) Create(ctx context.Context, dto CreateRoleProps) error {
 func (s *svc) FindAll(
 	ctx context.Context,
 	orgId string,
-	dto RoleSearchParams,
+	dto dto.SearchParams,
 ) (*pagination.Paginated[EntityWithPermission], error) {
 	safeSort := map[string]bool{
 		"name":    true,

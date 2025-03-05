@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/bernardinorafael/internal/_shared/dto"
 	. "github.com/bernardinorafael/internal/_shared/errors"
 	"github.com/bernardinorafael/internal/_shared/util"
 	"github.com/bernardinorafael/internal/infra/http/middleware"
@@ -44,7 +45,7 @@ func (c controller) RegisterRoute(r *chi.Mux) {
 }
 
 func (c controller) getRoles(w http.ResponseWriter, r *http.Request) {
-	var input RoleSearchParams
+	var input dto.SearchParams
 
 	input.Query = util.ReadQueryString(r.URL.Query(), "q", "")
 	input.Limit = util.ReadQueryInt(r.URL.Query(), "limit", 25)

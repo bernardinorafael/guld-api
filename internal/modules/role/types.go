@@ -20,13 +20,8 @@ type Entity struct {
 }
 
 type EntityWithPermission struct {
-	ID          string       `json:"id" db:"id"`
-	Name        string       `json:"name" db:"name"`
-	OrgID       string       `json:"org_id" db:"org_id"`
+	Entity
 	Permissions []Permission `json:"permissions" db:"permissions"`
-	Description string       `json:"description" db:"description"`
-	Created     time.Time    `json:"created" db:"created"`
-	Updated     time.Time    `json:"updated" db:"updated"`
 }
 
 type CreateRoleProps struct {
