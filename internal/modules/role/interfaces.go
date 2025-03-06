@@ -13,10 +13,12 @@ type RepositoryInterface interface {
 	Delete(ctx context.Context, orgId, roleId string) error
 	FindByID(ctx context.Context, orgId, roleId string) (*EntityWithPermission, error)
 	FindAll(ctx context.Context, orgId string, dto dto.SearchParams) ([]EntityWithPermission, int, error)
+	ManagePermissions(ctx context.Context, roleId string, permissions []string) error
 }
 
 type ServiceInterface interface {
 	Create(ctx context.Context, params CreateRoleProps) error
-	FindByID(ctx context.Context, orgId, roleId string) (*Entity, error)
 	FindAll(ctx context.Context, orgId string, dto dto.SearchParams) (*pagination.Paginated[EntityWithPermission], error)
+	GetRole(ctx context.Context, orgId, roleId string) (*EntityWithPermission, error)
+	ManagePermissions(ctx context.Context, roleId string, permissions []string) error
 }

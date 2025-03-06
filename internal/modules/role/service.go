@@ -23,6 +23,29 @@ func NewService(log logger.Logger, repo RepositoryInterface) ServiceInterface {
 	return &svc{log, repo}
 }
 
+func (s svc) ManagePermissions(ctx context.Context, roleId string, permissions []string) error {
+	err := s.repo.ManagePermissions(ctx, roleId, permissions)
+	if err != nil {
+		s.log.Errorw(ctx, "failed to manage permissions", logger.Err(err))
+		return NewBadRequestError("failed to manage permissions", err)
+	}
+
+	return nil
+}
+
+func (s svc) GetRole(ctx context.Context, orgId, roleId string) (*EntityWithPermission, error) {
+	role, err := s.repo.FindByID(ctx, orgId, roleId)
+	if err != nil {
+		s.log.Errorw(ctx, "failed to get role", logger.Err(err))
+		return nil, NewBadRequestError("failed to get role", err)
+	}
+	if role == nil {
+		return nil, NewNotFoundError("role not found", nil)
+	}
+
+	return role, nil
+}
+
 func (s *svc) Create(ctx context.Context, dto CreateRoleProps) error {
 	role := Entity{
 		ID:          util.GenID("role"),

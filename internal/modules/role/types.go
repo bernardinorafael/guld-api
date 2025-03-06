@@ -31,6 +31,7 @@ type CreateRoleProps struct {
 }
 
 type RolePermissionBatch struct {
+	ID           string `db:"id"`
 	RoleID       string `db:"role_id"`
 	PermissionID string `db:"permission_id"`
 }

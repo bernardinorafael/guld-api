@@ -15,6 +15,7 @@ import (
 	"github.com/bernardinorafael/internal/modules/account"
 	"github.com/bernardinorafael/internal/modules/email"
 	"github.com/bernardinorafael/internal/modules/org"
+	"github.com/bernardinorafael/internal/modules/permission"
 	"github.com/bernardinorafael/internal/modules/role"
 	"github.com/bernardinorafael/internal/modules/team"
 	"github.com/bernardinorafael/internal/modules/user"
@@ -66,6 +67,7 @@ func main() {
 	})
 
 	// Repositories
+	permissionRepo := permission.NewRepository(db.GetDB())
 	userRepo := userrepo.New(db.GetDB())
 	emailRepo := email.NewRepository(db.GetDB())
 	roleRepo := role.NewRepository(db.GetDB())
@@ -76,6 +78,7 @@ func main() {
 	// Services
 	emailService := email.NewService(log, emailRepo, mailer)
 
+	permissionService := permission.NewService(log, permissionRepo)
 	accService := account.NewService(ctx, log, accRepo, mailer, env.JWTSecret)
 	roleService := role.NewService(log, roleRepo)
 	teamService := team.NewService(log, teamRepo)
@@ -89,6 +92,7 @@ func main() {
 	role.NewController(ctx, log, roleService, env.JWTSecret).RegisterRoute(r)
 	account.NewController(ctx, log, accService, env.JWTSecret).RegisterRoute(r)
 	org.NewController(ctx, log, orgService, env.JWTSecret).RegisterRoute(r)
+	permission.NewController(ctx, log, permissionService, env.JWTSecret).RegisterRoute(r)
 
 	log.Info(ctx, "Server started")
 	err = http.ListenAndServe(":"+env.Port, r)

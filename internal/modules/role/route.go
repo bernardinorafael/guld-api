@@ -41,6 +41,43 @@ func (c controller) RegisterRoute(r *chi.Mux) {
 
 		r.Post("/org/{orgId}", c.createRole)
 		r.Get("/org/{orgId}", c.getRoles)
+		r.Get("/org/{orgId}/role/{roleId}", c.getRole)
+		r.Patch("/permissions/org/{orgId}/role/{roleId}", c.managePermissions)
+	})
+}
+
+func (c controller) managePermissions(w http.ResponseWriter, r *http.Request) {
+	roleId := chi.URLParam(r, "roleId")
+
+	var input ManagePermissionsProps
+
+	err := util.ReadRequestBody(w, r, &input)
+	if err != nil {
+		NewHttpError(w, err)
+		return
+	}
+
+	err = c.svc.ManagePermissions(c.ctx, roleId, input.Permissions)
+	if err != nil {
+		NewHttpError(w, err)
+		return
+	}
+
+	util.WriteSuccessResponse(w, http.StatusCreated)
+}
+
+func (c controller) getRole(w http.ResponseWriter, r *http.Request) {
+	roleId := chi.URLParam(r, "roleId")
+	orgId := chi.URLParam(r, "orgId")
+
+	role, err := c.svc.GetRole(c.ctx, orgId, roleId)
+	if err != nil {
+		NewHttpError(w, err)
+		return
+	}
+
+	util.WriteJSONResponse(w, http.StatusOK, map[string]any{
+		"role": role,
 	})
 }
 

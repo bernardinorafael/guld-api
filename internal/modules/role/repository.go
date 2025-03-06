@@ -3,12 +3,12 @@ package role
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/bernardinorafael/internal/_shared/dto"
+	"github.com/bernardinorafael/internal/_shared/util"
 	"github.com/bernardinorafael/pkg/transaction"
 	"github.com/jmoiron/sqlx"
 )
@@ -19,6 +19,59 @@ type repo struct {
 
 func NewRepository(db *sqlx.DB) RepositoryInterface {
 	return &repo{db}
+}
+
+func (r *repo) ManagePermissions(ctx context.Context, roleId string, permissions []string) error {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	err := transaction.ExecTx(ctx, r.db, func(tx *sqlx.Tx) error {
+		_, err := tx.ExecContext(ctx, "DELETE FROM role_permissions WHERE role_id = $1", roleId)
+		if err != nil {
+			return fmt.Errorf("failed to delete existing permissions: %w", err)
+		}
+
+		if len(permissions) == 0 {
+			return nil
+		}
+
+		perms := make([]RolePermissionBatch, len(permissions))
+		for i, permissionId := range permissions {
+			perms[i] = RolePermissionBatch{
+				ID:           util.GenID("rp"),
+				RoleID:       roleId,
+				PermissionID: permissionId,
+			}
+		}
+
+		_, err = tx.NamedExecContext(
+			ctx,
+			`
+			INSERT INTO role_permissions (
+				id,
+				role_id,
+				permission_id
+			) VALUES (
+				:id,
+				:role_id,
+				:permission_id
+			)
+			ON CONFLICT (role_id, permission_id) DO NOTHING
+			`,
+			perms,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to insert new permissions: %w", err)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("failed to batch update role permissions: %w", err)
+	}
+
+	return nil
 }
 
 func (r *repo) Delete(ctx context.Context, orgId, roleId string) error {
@@ -100,7 +153,7 @@ func (r *repo) FindAll(ctx context.Context, orgId string, params dto.SearchParam
 	roleMap := make(map[string]*EntityWithPermission)
 
 	for _, role := range roles {
-		if _, exists := roleMap[role.ID]; !exists {
+		if _, ok := roleMap[role.ID]; !ok {
 			roleMap[role.ID] = &EntityWithPermission{
 				Entity:      role.Entity,
 				Permissions: []Permission{},
@@ -115,46 +168,70 @@ func (r *repo) FindAll(ctx context.Context, orgId string, params dto.SearchParam
 		}
 	}
 
-	var result []EntityWithPermission
+	var res []EntityWithPermission
 	for _, v := range roleMap {
-		result = append(result, *v)
+		res = append(res, *v)
 	}
 
-	return result, count, nil
+	return res, count, nil
 }
 
 func (r *repo) FindByID(ctx context.Context, orgId, roleId string) (*EntityWithPermission, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
-	var role EntityWithPermission
-	role.Permissions = make([]Permission, 0)
-	q := `
-		SELECT
-			r.id,
-			r.name,
-			r.org_id,
-			r.description,
-			r.created,
-			r.updated,
-			p.id as "permission.id",
-			p.key as "permission.key",
-			p.name as "permission.name"
-		FROM roles r
-		LEFT JOIN role_permissions rp ON r.id = rp.role_id
-		LEFT JOIN permissions p ON rp.permission_id = p.id
-		WHERE r.id = $1 AND r.org_id = $2
-	`
-
-	err := r.db.GetContext(ctx, &role, q, roleId, orgId)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, errors.New("role not found")
-		}
-		return nil, fmt.Errorf("failed to find role by id: %w", err)
+	var roles []struct {
+		Entity
+		PermissionID   sql.NullString `db:"permission_id"`
+		PermissionName sql.NullString `db:"permission_name"`
+		PermissionKey  sql.NullString `db:"permission_key"`
 	}
 
-	return &role, nil
+	err := r.db.SelectContext(
+		ctx,
+		&roles,
+		`
+			SELECT
+				r.id,
+				r.name,
+				r.org_id,
+				r.description,
+				r.created,
+				r.updated,
+				p.id AS permission_id,
+				p.name AS permission_name,
+				p.key AS permission_key
+			FROM roles r
+			LEFT JOIN role_permissions rp ON r.id = rp.role_id
+			LEFT JOIN permissions p ON rp.permission_id = p.id
+			WHERE r.id = $1 AND r.org_id = $2
+		`,
+		roleId,
+		orgId,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find role by id: %w", err)
+	}
+	if len(roles) == 0 {
+		return nil, fmt.Errorf("role not found")
+	}
+
+	res := &EntityWithPermission{
+		Entity:      roles[0].Entity,
+		Permissions: []Permission{},
+	}
+
+	for _, role := range roles {
+		if role.PermissionID.Valid {
+			res.Permissions = append(res.Permissions, Permission{
+				ID:   role.PermissionID.String,
+				Name: role.PermissionName.String,
+				Key:  role.PermissionKey.String,
+			})
+		}
+	}
+
+	return res, nil
 }
 
 func (r *repo) Update(ctx context.Context, entity Entity) error {
@@ -209,60 +286,6 @@ func (r *repo) Insert(ctx context.Context, entity Entity) error {
 	)
 	if err != nil {
 		return fmt.Errorf("failed to insert role: %w", err)
-	}
-
-	return nil
-}
-
-func (r *repo) BatchRolePermissions(ctx context.Context, roleId string, permissions []string) error {
-	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
-	defer cancel()
-
-	err := transaction.ExecTx(ctx, r.db, func(tx *sqlx.Tx) error {
-		// Primeiro, remova todas as permissões existentes para este role
-		_, err := tx.ExecContext(ctx, "DELETE FROM role_permissions WHERE role_id = $1", roleId)
-		if err != nil {
-			return fmt.Errorf("failed to delete existing permissions: %w", err)
-		}
-
-		// Se não houver novas permissões, retorne
-		if len(permissions) == 0 {
-			return nil
-		}
-
-		// Prepare os valores para inserção em lote
-		perms := make([]RolePermissionBatch, len(permissions))
-		for i, permissionId := range permissions {
-			perms[i] = RolePermissionBatch{
-				RoleID:       roleId,
-				PermissionID: permissionId,
-			}
-		}
-
-		// Insira as novas permissões
-		_, err = tx.NamedExecContext(
-			ctx,
-			`
-			INSERT INTO role_permissions (
-				role_id,
-				permission_id
-			) VALUES (
-				:role_id,
-				:permission_id
-			)
-			ON CONFLICT (role_id, permission_id) DO NOTHING
-			`,
-			perms,
-		)
-		if err != nil {
-			return fmt.Errorf("failed to insert new permissions: %w", err)
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		return fmt.Errorf("failed to batch update role permissions: %w", err)
 	}
 
 	return nil
