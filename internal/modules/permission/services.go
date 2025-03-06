@@ -16,6 +16,16 @@ func NewService(log logger.Logger, repo RepositoryInterface) ServiceInterface {
 	return &svc{log, repo}
 }
 
+func (s *svc) GetPermissionsByRoleID(ctx context.Context, roleId string) ([]Entity, error) {
+	permissions, err := s.repo.FindByRoleID(ctx, roleId)
+	if err != nil {
+		s.log.Errorw(ctx, "failed to find permissions", logger.Err(err))
+		return nil, NewBadRequestError("failed to find permissions", err)
+	}
+
+	return permissions, nil
+}
+
 func (s *svc) FindAll(ctx context.Context) ([]Entity, error) {
 	permissions, err := s.repo.FindAll(ctx)
 	if err != nil {

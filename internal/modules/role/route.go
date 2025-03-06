@@ -42,8 +42,51 @@ func (c controller) RegisterRoute(r *chi.Mux) {
 		r.Post("/org/{orgId}", c.createRole)
 		r.Get("/org/{orgId}", c.getRoles)
 		r.Get("/org/{orgId}/role/{roleId}", c.getRole)
+		r.Delete("/org/{orgId}/role/{roleId}", c.deleteRole)
+		r.Patch("/org/{orgId}/role/{roleId}", c.updateRole)
+
+		// Permissions
 		r.Patch("/permissions/org/{orgId}/role/{roleId}", c.managePermissions)
 	})
+}
+
+func (c controller) updateRole(w http.ResponseWriter, r *http.Request) {
+	roleId := chi.URLParam(r, "roleId")
+	orgId := chi.URLParam(r, "orgId")
+
+	var input UpdateRoleDTO
+
+	err := util.ReadRequestBody(w, r, &input)
+	if err != nil {
+		NewHttpError(w, err)
+		return
+	}
+
+	err = c.svc.UpdateRoleInformation(
+		c.ctx,
+		orgId,
+		roleId,
+		input,
+	)
+	if err != nil {
+		NewHttpError(w, err)
+		return
+	}
+
+	util.WriteSuccessResponse(w, http.StatusNoContent)
+}
+
+func (c controller) deleteRole(w http.ResponseWriter, r *http.Request) {
+	roleId := chi.URLParam(r, "roleId")
+	orgId := chi.URLParam(r, "orgId")
+
+	err := c.svc.Delete(c.ctx, orgId, roleId)
+	if err != nil {
+		NewHttpError(w, err)
+		return
+	}
+
+	util.WriteSuccessResponse(w, http.StatusNoContent)
 }
 
 func (c controller) managePermissions(w http.ResponseWriter, r *http.Request) {
@@ -82,12 +125,13 @@ func (c controller) getRole(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c controller) getRoles(w http.ResponseWriter, r *http.Request) {
+	var query = r.URL.Query()
 	var input dto.SearchParams
 
-	input.Query = util.ReadQueryString(r.URL.Query(), "q", "")
-	input.Limit = util.ReadQueryInt(r.URL.Query(), "limit", 25)
-	input.Page = util.ReadQueryInt(r.URL.Query(), "page", 1)
-	input.Sort = util.ReadQueryString(r.URL.Query(), "sort", "name")
+	input.Query = util.ReadQueryString(query, "q", "")
+	input.Limit = util.ReadQueryInt(query, "limit", 25)
+	input.Page = util.ReadQueryInt(query, "page", 1)
+	input.Sort = util.ReadQueryString(query, "sort", "name")
 
 	res, err := c.svc.FindAll(c.ctx, chi.URLParam(r, "orgId"), input)
 	if err != nil {

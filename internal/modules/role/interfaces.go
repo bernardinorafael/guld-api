@@ -21,4 +21,6 @@ type ServiceInterface interface {
 	FindAll(ctx context.Context, orgId string, dto dto.SearchParams) (*pagination.Paginated[EntityWithPermission], error)
 	GetRole(ctx context.Context, orgId, roleId string) (*EntityWithPermission, error)
 	ManagePermissions(ctx context.Context, roleId string, permissions []string) error
+	Delete(ctx context.Context, orgId, roleId string) error
+	UpdateRoleInformation(ctx context.Context, orgId, roleId string, dto UpdateRoleDTO) error
 }

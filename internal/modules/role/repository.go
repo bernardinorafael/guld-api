@@ -99,7 +99,12 @@ func (r *repo) FindAll(ctx context.Context, orgId string, params dto.SearchParam
 	var count int
 
 	err := transaction.ExecTx(ctx, r.db, func(tx *sqlx.Tx) error {
-		err := tx.GetContext(ctx, &count, "SELECT COUNT(*) FROM roles WHERE org_id = $1", orgId)
+		err := tx.GetContext(
+			ctx,
+			&count,
+			"SELECT COUNT(DISTINCT r.id) FROM roles r WHERE r.org_id = $1",
+			orgId,
+		)
 		if err != nil {
 			return fmt.Errorf("error on count all roles: %w", err)
 		}

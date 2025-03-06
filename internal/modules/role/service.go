@@ -106,3 +106,37 @@ func (s *svc) FindAll(
 func (s *svc) FindByID(ctx context.Context, orgId string, roleId string) (*Entity, error) {
 	panic("unimplemented")
 }
+
+func (s *svc) Delete(ctx context.Context, orgId, roleId string) error {
+	err := s.repo.Delete(ctx, orgId, roleId)
+	if err != nil {
+		s.log.Errorw(ctx, "failed to delete role", logger.Err(err))
+		return NewBadRequestError("failed to delete role", nil)
+	}
+
+	return nil
+}
+
+func (s *svc) UpdateRoleInformation(ctx context.Context, orgId, roleId string, dto UpdateRoleDTO) error {
+	role, err := s.repo.FindByID(ctx, orgId, roleId)
+	if err != nil {
+		return NewBadRequestError("failed to update role information", nil)
+	}
+	if role == nil {
+		return NewNotFoundError("role not found", nil)
+	}
+
+	err = s.repo.Update(ctx, Entity{
+		ID:          role.ID,
+		OrgID:       role.OrgID,
+		Name:        dto.Name,
+		Description: dto.Description,
+		Created:     role.Created,
+		Updated:     time.Now(),
+	})
+	if err != nil {
+		return NewBadRequestError("failed to update role information", nil)
+	}
+
+	return nil
+}
