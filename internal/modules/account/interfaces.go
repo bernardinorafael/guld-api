@@ -11,7 +11,7 @@ type RepositoryInterface interface {
 	FindByID(ctx context.Context, accountId string) (*EntityWithUser, error)
 	FindByUserID(ctx context.Context, userId string) (*Entity, error)
 	FindByUsername(ctx context.Context, username string) (*EntityWithUser, error)
-	Update(ctx context.Context, acc PartialEntity) error
+	Update(ctx context.Context, acc Entity) error
 }
 
 type ServiceInterface interface {
@@ -19,4 +19,5 @@ type ServiceInterface interface {
 	Register(ctx context.Context, dto CreateAccountParams) (string, *token.AccountClaims, error)
 	GetSignedInAccount(ctx context.Context) (*EntityWithUser, error)
 	ActivateAccount(ctx context.Context, accountId string) error
+	ChangePassword(ctx context.Context, userId string, old string, new string) error
 }

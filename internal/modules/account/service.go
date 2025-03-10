@@ -20,34 +20,94 @@ import (
 const temporaryTokenDuration = 60 * 24 * time.Minute
 
 type svc struct {
-	ctx    context.Context
-	log    logger.Logger
-	repo   RepositoryInterface
-	t      *token.Token
-	mailer mailer.Mailer
+	ctx      context.Context
+	log      logger.Logger
+	repo     RepositoryInterface
+	userRepo user.RepositoryInterface
+	t        *token.Token
+	mailer   mailer.Mailer
 }
 
 func NewService(
 	ctx context.Context,
 	log logger.Logger,
 	repo RepositoryInterface,
+	userRepo user.RepositoryInterface,
 	mailer mailer.Mailer,
 	secretKey string,
 ) ServiceInterface {
 	return &svc{
-		ctx:    ctx,
-		log:    log,
-		repo:   repo,
-		mailer: mailer,
-		t:      token.New(ctx, log, secretKey),
+		ctx:      ctx,
+		log:      log,
+		repo:     repo,
+		userRepo: userRepo,
+		mailer:   mailer,
+		t:        token.New(ctx, log, secretKey),
 	}
+}
+
+func (s svc) ChangePassword(ctx context.Context, userId string, oldPassword string, newPassword string) error {
+	user, err := s.userRepo.FindByID(ctx, userId)
+	if err != nil {
+		return NewBadRequestError("error on get user by id", err)
+	}
+	if user == nil {
+		return NewNotFoundError("user not found", nil)
+	}
+
+	account, err := s.repo.FindByUserID(ctx, userId)
+	if err != nil {
+		return NewBadRequestError("error on get account by id", err)
+	}
+	if account == nil {
+		return NewNotFoundError("account not found", nil)
+	}
+
+	newAcc, err := NewAccountFromEntity(*account)
+	if err != nil {
+		return NewBadRequestError("error on create account entity", nil)
+	}
+
+	if !crypto.PasswordMatches(oldPassword, newAcc.password) {
+		return NewConflictError("passwords does not matches", InvalidCredentials, nil, nil)
+	}
+
+	hashedPassword, err := crypto.HashPassword(newPassword)
+	if err != nil {
+		return NewBadRequestError("failed to encrypt password", nil)
+	}
+
+	err = newAcc.ChangePassword(hashedPassword, user.IgnorePasswordPolicy)
+	if err != nil {
+		return NewBadRequestError("error on change password", err)
+	}
+
+	toStore := newAcc.Store()
+
+	err = s.repo.Update(ctx, toStore)
+	if err != nil {
+		return NewBadRequestError("error on updating account password", err)
+	}
+
+	go func() {
+		params := mailer.SendParams{
+			From:    mailer.NotificationSender,
+			To:      "rafaelferreirab2@gmail.com",
+			Subject: "Sua senha foi alterada",
+			File:    "change_password.html",
+		}
+		if err := s.mailer.Send(params); err != nil {
+			s.log.Errorw(ctx, "error on send email", logger.Err(err))
+		}
+	}()
+
+	return nil
 }
 
 func (s svc) ActivateAccount(ctx context.Context, userId string) error {
 	account, err := s.repo.FindByUserID(ctx, userId)
 	if err != nil {
-		s.log.Errorw(ctx, "error on get account by id", logger.Err(err))
-		return NewConflictError("error on get account by id", InvalidCredentials, err, nil)
+		return NewBadRequestError("error on get account by id", err)
 	}
 
 	if account.IsActive {
@@ -59,13 +119,11 @@ func (s svc) ActivateAccount(ctx context.Context, userId string) error {
 	if err != nil {
 		s.log.Errorw(ctx, "error on create account from entity", logger.Err(err))
 	}
-	newAcc.Activate()
 
-	active := newAcc.IsActive()
-	err = s.repo.Update(ctx, PartialEntity{
-		ID:       account.ID,
-		IsActive: &active,
-	})
+	newAcc.Activate()
+	toStore := newAcc.Store()
+
+	err = s.repo.Update(ctx, toStore)
 	if err != nil {
 		s.log.Errorw(ctx, "error on update account", logger.Err(err))
 		return NewBadRequestError("error on update account", nil)
@@ -79,16 +137,18 @@ func (s svc) ActivateAccount(ctx context.Context, userId string) error {
 func (s svc) GetSignedInAccount(ctx context.Context) (*EntityWithUser, error) {
 	accId, ok := ctx.Value(middleware.AccIDKey).(string)
 	if !ok {
-		msg := "user ID not found in context"
-		s.log.Errorw(ctx, msg, logger.Err(errors.New(msg)))
-		return nil, NewConflictError(msg, InvalidCredentials, errors.New(msg), nil)
+		return nil, NewConflictError(
+			"user ID not found in context",
+			InvalidCredentials,
+			nil,
+			nil,
+		)
 	}
 
 	acc, err := s.repo.FindByID(ctx, accId)
 	if err != nil {
-		msg := "error on get account"
-		s.log.Errorw(ctx, msg, logger.Err(err))
-		return nil, NewConflictError(msg, InvalidCredentials, err, nil)
+		s.log.Errorw(ctx, "error on get account", logger.Err(err))
+		return nil, NewConflictError("error on get account", InvalidCredentials, err, nil)
 	}
 
 	return acc, nil
@@ -97,12 +157,10 @@ func (s svc) GetSignedInAccount(ctx context.Context) (*EntityWithUser, error) {
 func (s svc) Login(ctx context.Context, username string, password string) (string, *token.AccountClaims, error) {
 	acc, err := s.repo.FindByUsername(ctx, username)
 	if err != nil {
-		s.log.Errorw(ctx, "error on get account by username", logger.Err(err))
 		return "", nil, NewConflictError("check username and/or password", InvalidCredentials, err, nil)
 	}
 
 	if !acc.IsActive {
-		s.log.Errorw(ctx, "account is not active", logger.Err(err))
 		return "", nil, NewConflictError("account is not active", DisabledAccount, err, nil)
 	}
 

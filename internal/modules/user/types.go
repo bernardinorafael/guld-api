@@ -23,8 +23,10 @@ type Entity struct {
 	PhoneNumber  string  `json:"phone_number" db:"phone_number"`
 	EmailAddress string  `json:"email_address" db:"email_address"`
 	AvatarURL    *string `json:"avatar_url" db:"avatar_url"`
-	Banned       bool    `json:"banned" db:"banned"`
-	Locked       bool    `json:"locked" db:"locked"`
+
+	Banned               bool `json:"banned" db:"banned"`
+	Locked               bool `json:"locked" db:"locked"`
+	IgnorePasswordPolicy bool `json:"ignore_password_policy" db:"ignore_password_policy"`
 
 	UsernameLastUpdated time.Time `json:"username_last_updated" db:"username_last_updated"`
 	UsernameLockoutEnd  time.Time `json:"username_lockout_end" db:"username_lockout_end"`

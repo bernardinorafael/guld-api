@@ -79,7 +79,7 @@ func main() {
 	emailService := email.NewService(log, emailRepo, mailer)
 
 	permissionService := permission.NewService(log, permissionRepo)
-	accService := account.NewService(ctx, log, accRepo, mailer, env.JWTSecret)
+	accService := account.NewService(ctx, log, accRepo, userRepo, mailer, env.JWTSecret)
 	roleService := role.NewService(log, roleRepo)
 	teamService := team.NewService(log, teamRepo)
 	userService := usersvc.New(log, userRepo, emailService, mailer, uploader)

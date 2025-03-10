@@ -33,8 +33,10 @@ type User struct {
 	phoneNumber  string
 	emailAddress string
 	avatarURL    *string
-	banned       bool
-	locked       bool
+
+	banned               bool
+	locked               bool
+	ignorePasswordPolicy bool
 
 	usernameLastUpdated time.Time
 	usernameLockoutEnd  time.Time
@@ -51,8 +53,10 @@ func NewFromEntity(u Entity) (*User, error) {
 		phoneNumber:  u.PhoneNumber,
 		emailAddress: u.EmailAddress,
 		avatarURL:    u.AvatarURL,
-		banned:       u.Banned,
-		locked:       u.Locked,
+
+		banned:               u.Banned,
+		locked:               u.Locked,
+		ignorePasswordPolicy: u.IgnorePasswordPolicy,
 
 		usernameLastUpdated: u.UsernameLastUpdated,
 		usernameLockoutEnd:  u.UsernameLockoutEnd,
@@ -77,8 +81,10 @@ func NewUser(name, username, phone, email string) (*User, error) {
 		phoneNumber:  phone,
 		emailAddress: email,
 		avatarURL:    nil,
-		banned:       false,
-		locked:       false,
+
+		banned:               false,
+		locked:               false,
+		ignorePasswordPolicy: false,
 
 		usernameLastUpdated: time.Now(),
 		usernameLockoutEnd:  time.Now().Add(usernameLockoutDuration),
@@ -196,6 +202,11 @@ func (u *User) ChangeProfilePicture(url string) {
 	u.updated = time.Now()
 }
 
+func (u *User) ChangePasswordPolicy(ignore bool) {
+	u.ignorePasswordPolicy = ignore
+	u.updated = time.Now()
+}
+
 // Store stores the user entity in the database
 func (u *User) Store() Entity {
 	return Entity{
@@ -205,8 +216,10 @@ func (u *User) Store() Entity {
 		AvatarURL:    u.AvatarURL(),
 		PhoneNumber:  u.Phone(),
 		EmailAddress: u.Email(),
-		Banned:       u.Banned(),
-		Locked:       u.Locked(),
+
+		Banned:               u.Banned(),
+		Locked:               u.Locked(),
+		IgnorePasswordPolicy: u.IgnorePasswordPolicy(),
 
 		UsernameLastUpdated: u.UsernameLastUpdated(),
 		UsernameLockoutEnd:  u.UsernameLockoutEnd(),
@@ -225,5 +238,6 @@ func (u *User) UsernameLockoutEnd() time.Time  { return u.usernameLockoutEnd }
 func (u *User) Phone() string                  { return u.phoneNumber }
 func (u *User) Banned() bool                   { return u.banned }
 func (u *User) Locked() bool                   { return u.locked }
+func (u *User) IgnorePasswordPolicy() bool     { return u.ignorePasswordPolicy }
 func (u *User) Created() time.Time             { return u.created }
 func (u *User) Updated() time.Time             { return u.updated }

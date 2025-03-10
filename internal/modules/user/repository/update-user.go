@@ -23,6 +23,7 @@ func (r repo) Update(ctx context.Context, entity user.Entity) error {
 			locked = :locked,
 			banned = :banned,
 			avatar_url = :avatar_url,
+			ignore_password_policy = :ignore_password_policy,
 			phone_number = :phone_number,
 			email_address = :email_address
 		WHERE

@@ -62,9 +62,13 @@ func NewAccount(userId, password string) (*account, error) {
 	return account, nil
 }
 
-func (a *account) ChangePassword(password string) error {
-	if err := a.validatePassword(); err != nil {
-		return err
+func (a *account) ChangePassword(password string, ignorePasswordPolicy bool) error {
+	// Validate password if ignorePasswordPolicy is false
+	if !ignorePasswordPolicy {
+		err := a.validatePassword()
+		if err != nil {
+			return err
+		}
 	}
 
 	a.password = password
@@ -140,6 +144,7 @@ func (a *account) Store() Entity {
 		ID:       a.ID(),
 		UserID:   a.UserID(),
 		Password: a.Password(),
+		IsActive: a.IsActive(),
 		Created:  a.Created(),
 		Updated:  a.Updated(),
 	}

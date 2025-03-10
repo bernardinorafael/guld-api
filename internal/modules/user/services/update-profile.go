@@ -33,6 +33,8 @@ func (s svc) UpdateProfile(ctx context.Context, userId string, dto user.UpdatePr
 		return NewBadRequestError("error on update profile", err)
 	}
 
+	userEntity.ChangePasswordPolicy(dto.IgnorePasswordPolicy)
+
 	err = s.userRepo.Update(ctx, userEntity.Store())
 	if err != nil {
 		return NewBadRequestError("error on update profile", err)

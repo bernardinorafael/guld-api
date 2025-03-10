@@ -8,6 +8,7 @@ type UserRegisterDTO struct {
 }
 
 type UpdateProfileDTO struct {
-	FullName string `json:"full_name" db:"full_name"`
-	Username string `json:"username" db:"username"`
+	FullName             string `json:"full_name" db:"full_name"`
+	Username             string `json:"username" db:"username"`
+	IgnorePasswordPolicy bool   `json:"ignore_password_policy" db:"ignore_password_policy"`
 }

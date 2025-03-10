@@ -16,8 +16,8 @@ type Entity struct {
 	ID       string    `json:"id" db:"id"`
 	UserID   string    `json:"user_id" db:"user_id"`
 	Password string    `json:"password,omitempty" db:"password"`
-	Created  time.Time `json:"created" db:"created"`
 	IsActive bool      `json:"is_active" db:"is_active"`
+	Created  time.Time `json:"created" db:"created"`
 	Updated  time.Time `json:"updated" db:"updated"`
 }
 

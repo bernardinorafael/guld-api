@@ -34,6 +34,7 @@ func (c controller) RegisterRoute(r *chi.Mux) {
 		r.Post("/register", c.register)
 		r.Post("/login", c.login)
 		r.Post("/activate/{userId}", c.activate)
+		r.Post("/{userId}/change-password", c.changePassword)
 	})
 
 	r.Route("/api/v1/accounts/me", func(r chi.Router) {
@@ -42,14 +43,33 @@ func (c controller) RegisterRoute(r *chi.Mux) {
 	})
 }
 
+func (c controller) changePassword(w http.ResponseWriter, r *http.Request) {
+	var userId = chi.URLParam(r, "userId")
+
+	var body struct {
+		Password    string `json:"password"`
+		NewPassword string `json:"new_password"`
+	}
+
+	err := util.ReadRequestBody(w, r, &body)
+	if err != nil {
+		NewHttpError(w, err)
+		return
+	}
+
+	err = c.svc.ChangePassword(c.ctx, userId, body.Password, body.NewPassword)
+	if err != nil {
+		NewHttpError(w, err)
+		return
+	}
+
+	util.WriteSuccessResponse(w, http.StatusOK)
+}
+
 func (c controller) activate(w http.ResponseWriter, r *http.Request) {
 	err := c.svc.ActivateAccount(r.Context(), chi.URLParam(r, "userId"))
 	if err != nil {
-		if err, ok := err.(ApplicationError); ok {
-			NewHttpError(w, err)
-			return
-		}
-		NewHttpError(w, NewInternalServerError(err))
+		NewHttpError(w, err)
 		return
 	}
 
@@ -59,11 +79,7 @@ func (c controller) activate(w http.ResponseWriter, r *http.Request) {
 func (c controller) getSigned(w http.ResponseWriter, r *http.Request) {
 	acc, err := c.svc.GetSignedInAccount(r.Context())
 	if err != nil {
-		if err, ok := err.(ApplicationError); ok {
-			NewHttpError(w, err)
-			return
-		}
-		NewHttpError(w, NewInternalServerError(err))
+		NewHttpError(w, err)
 		return
 	}
 
@@ -79,21 +95,13 @@ func (c controller) login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := util.ReadRequestBody(w, r, &body); err != nil {
-		if err, ok := err.(ApplicationError); ok {
-			NewHttpError(w, err)
-			return
-		}
-		NewHttpError(w, NewInternalServerError(err))
+		NewHttpError(w, err)
 		return
 	}
 
 	token, claims, err := c.svc.Login(r.Context(), body.Username, body.Password)
 	if err != nil {
-		if err, ok := err.(ApplicationError); ok {
-			NewHttpError(w, err)
-			return
-		}
-		NewHttpError(w, NewInternalServerError(err))
+		NewHttpError(w, err)
 		return
 	}
 
@@ -115,21 +123,13 @@ func (c controller) register(w http.ResponseWriter, r *http.Request) {
 	var body CreateAccountParams
 
 	if err := util.ReadRequestBody(w, r, &body); err != nil {
-		if err, ok := err.(ApplicationError); ok {
-			NewHttpError(w, err)
-			return
-		}
-		NewHttpError(w, NewInternalServerError(err))
+		NewHttpError(w, err)
 		return
 	}
 
 	token, claims, err := c.svc.Register(r.Context(), body)
 	if err != nil {
-		if err, ok := err.(ApplicationError); ok {
-			NewHttpError(w, err)
-			return
-		}
-		NewHttpError(w, NewInternalServerError(err))
+		NewHttpError(w, err)
 		return
 	}
 
