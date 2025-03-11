@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/bernardinorafael/internal/_shared/errors"
+	. "github.com/bernardinorafael/internal/_shared/errors"
 	"github.com/bernardinorafael/internal/infra/token"
 	"github.com/bernardinorafael/pkg/logger"
 )
@@ -17,16 +17,14 @@ const (
 )
 
 type middleware struct {
-	ctx context.Context
-	log logger.Logger
-	t   *token.Token
+	log       logger.Logger
+	secretKey string
 }
 
-func NewWithAuth(ctx context.Context, log logger.Logger, secretKey string) *middleware {
+func NewWithAuth(log logger.Logger, secretKey string) *middleware {
 	return &middleware{
-		ctx: ctx,
-		log: log,
-		t:   token.New(ctx, log, secretKey),
+		log:       log,
+		secretKey: secretKey,
 	}
 }
 
@@ -35,13 +33,13 @@ func (m *middleware) WithAuth(done http.Handler) http.Handler {
 		accessToken := r.Header.Get("Authorization")
 
 		if len(accessToken) == 0 {
-			errors.NewHttpError(w, errors.NewUnauthorizedError("access token not provided", nil))
+			NewHttpError(w, NewUnauthorizedError("access token not provided", nil))
 			return
 		}
 
-		p, err := m.t.VerifyToken(accessToken)
+		p, err := token.Verify(m.secretKey, accessToken)
 		if err != nil {
-			errors.NewHttpError(w, errors.NewUnauthorizedError("invalid access token", err))
+			NewHttpError(w, NewUnauthorizedError("invalid access token", err))
 			return
 		}
 

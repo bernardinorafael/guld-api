@@ -11,34 +11,26 @@ import (
 type WithParams struct {
 	AccountID string
 	UserID    string
-	OrgID     *string
 	Username  string
-	Email     string
 	Duration  time.Duration
 }
 
 type AccountClaims struct {
-	AccountID string  `json:"account_id"`
-	UserID    string  `json:"user_id"`
-	OrgID     *string `json:"org_id"`
-	Username  string  `json:"username"`
-	Email     string  `json:"email"`
+	AccountID string `json:"account_id"`
+	UserID    string `json:"user_id"`
+	Username  string `json:"username"`
 	jwt.RegisteredClaims
 }
 
-func NewAccountClaims(params WithParams) (*AccountClaims, error) {
+func NewAccountClaims(accId, userId, username string, duration time.Duration) (*AccountClaims, error) {
 	claims := &AccountClaims{
-		AccountID: params.AccountID,
-		UserID:    params.UserID,
-		OrgID:     params.OrgID,
-		Username:  params.Username,
-		Email:     params.Email,
+		AccountID: accId,
+		UserID:    userId,
+		Username:  username,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ID:        ksuid.New().String(),
-			Subject:   params.Email,
-			Audience:  []string{},
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(params.Duration)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(duration)),
 		},
 	}
 

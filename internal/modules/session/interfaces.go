@@ -9,3 +9,10 @@ type RepositoryInterface interface {
 	Delete(ctx context.Context, sessionId string) error
 	FindAllByUsername(ctx context.Context, username string) ([]Entity, error)
 }
+
+type ServiceInterface interface {
+	Create(ctx context.Context, entity Entity) error
+	GetSession(ctx context.Context, username, sessionId string) (*Entity, error)
+	Delete(ctx context.Context, sessionId string) error
+	FindAll(ctx context.Context, username string) ([]Entity, error)
+}

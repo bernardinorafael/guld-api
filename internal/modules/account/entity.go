@@ -26,8 +26,8 @@ type account struct {
 	updated  time.Time
 }
 
-// NewAccountFromEntity creates a new account from an entity
-func NewAccountFromEntity(acc Entity) (*account, error) {
+// NewFromDatabase creates a new account from an entity
+func NewFromDatabase(acc Entity) (*account, error) {
 	account := &account{
 		id:       acc.ID,
 		userId:   acc.UserID,

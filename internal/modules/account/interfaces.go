@@ -2,8 +2,6 @@ package account
 
 import (
 	"context"
-
-	"github.com/bernardinorafael/internal/infra/token"
 )
 
 type RepositoryInterface interface {
@@ -15,9 +13,7 @@ type RepositoryInterface interface {
 }
 
 type ServiceInterface interface {
-	Login(ctx context.Context, username, password string) (string, *token.AccountClaims, error)
-	Register(ctx context.Context, dto CreateAccountParams) (string, *token.AccountClaims, error)
+	Login(ctx context.Context, username, password string) (*AccountPayload, error)
 	GetSignedInAccount(ctx context.Context) (*EntityWithUser, error)
-	ActivateAccount(ctx context.Context, accountId string) error
 	ChangePassword(ctx context.Context, userId string, old string, new string) error
 }

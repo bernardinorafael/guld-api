@@ -33,7 +33,7 @@ func NewController(
 }
 
 func (c controller) RegisterRoute(r *chi.Mux) {
-	m := middleware.NewWithAuth(c.ctx, c.log, c.secretKey)
+	m := middleware.NewWithAuth(c.log, c.secretKey)
 
 	r.Route("/api/v1/organizations", func(r chi.Router) {
 		r.Use(m.WithAuth)

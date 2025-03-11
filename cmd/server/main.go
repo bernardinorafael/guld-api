@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log/slog"
 	"net/http"
 	"os"
 	"time"
@@ -43,7 +42,6 @@ func main() {
 
 	env, err := envconf.New()
 	if err != nil {
-		slog.Error("failed load env", "error", err)
 		panic(err)
 	}
 	// NOTE: To turn off logging, set env.Debug to false
@@ -75,13 +73,13 @@ func main() {
 	teamRepo := team.NewRepository(db.GetDB())
 	accRepo := account.NewRepository(db.GetDB())
 	orgRepo := org.NewRepo(db.GetDB())
-	// sessionRepo := session.NewRepo(db.GetDB())
+	sessionRepo := session.NewRepo(db.GetDB())
 
 	// Services
 	emailService := email.NewService(log, emailRepo, mailer)
-
+	_ = session.NewService(log, sessionRepo)
 	permissionService := permission.NewService(log, permissionRepo)
-	accService := account.NewService(ctx, log, accRepo, userRepo, mailer, env.JWTSecret)
+	accService := account.NewService(ctx, log, accRepo, userRepo, sessionRepo, mailer, env.JWTSecret)
 	roleService := role.NewService(log, roleRepo)
 	teamService := team.NewService(log, teamRepo)
 	userService := usersvc.New(log, userRepo, emailService, mailer, uploader)

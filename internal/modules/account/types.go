@@ -32,14 +32,12 @@ type EntityWithUser struct {
 }
 
 type AccountPayload struct {
-	AccessToken string  `json:"access_token"`
-	AccountID   string  `json:"account_id"`
-	UserID      string  `json:"user_id"`
-	OrgID       *string `json:"org_id"`
-	Username    string  `json:"username"`
-	Email       string  `json:"email"`
-	IssuedAt    int64   `json:"issued_at"`
-	ExpiresAt   int64   `json:"expires_at"`
+	SessionID           string      `json:"session_id"`
+	AccessToken         string      `json:"access_token"`
+	RefreshToken        string      `json:"refresh_token"`
+	AccessTokenExpires  time.Time   `json:"access_token_expires"`
+	RefreshTokenExpires time.Time   `json:"refresh_token_expires"`
+	User                user.Entity `json:"user"`
 }
 
 type CreateAccountParams struct {

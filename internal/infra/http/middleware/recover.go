@@ -7,7 +7,7 @@ import (
 
 	"runtime/debug"
 
-	"github.com/bernardinorafael/internal/_shared/errors"
+	. "github.com/bernardinorafael/internal/_shared/errors"
 )
 
 func WithRecoverPanic(next http.Handler) http.Handler {
@@ -19,7 +19,7 @@ func WithRecoverPanic(next http.Handler) http.Handler {
 				w.Header().Set("Content-Type", "application/json")
 				w.Header().Set("Connection", "close")
 
-				appErr := errors.NewInternalServerError(fmt.Errorf("internal server error: %v", err))
+				appErr := NewInternalServerError(fmt.Errorf("internal server error: %v", err))
 				w.WriteHeader(appErr.StatusCode())
 
 				if encodeErr := json.NewEncoder(w).Encode(appErr); encodeErr != nil {
@@ -27,6 +27,7 @@ func WithRecoverPanic(next http.Handler) http.Handler {
 				}
 			}
 		}()
+
 		next.ServeHTTP(w, r)
 	})
 }

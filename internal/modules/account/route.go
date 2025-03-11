@@ -28,12 +28,10 @@ func NewController(
 }
 
 func (c controller) RegisterRoute(r *chi.Mux) {
-	m := middleware.NewWithAuth(c.ctx, c.log, c.secretKey)
+	m := middleware.NewWithAuth(c.log, c.secretKey)
 
 	r.Route("/api/v1/auth", func(r chi.Router) {
-		r.Post("/register", c.register)
 		r.Post("/login", c.login)
-		r.Post("/activate/{userId}", c.activate)
 		r.Post("/{userId}/change-password", c.changePassword)
 	})
 
@@ -66,16 +64,6 @@ func (c controller) changePassword(w http.ResponseWriter, r *http.Request) {
 	util.WriteSuccessResponse(w, http.StatusOK)
 }
 
-func (c controller) activate(w http.ResponseWriter, r *http.Request) {
-	err := c.svc.ActivateAccount(r.Context(), chi.URLParam(r, "userId"))
-	if err != nil {
-		NewHttpError(w, err)
-		return
-	}
-
-	util.WriteSuccessResponse(w, http.StatusOK)
-}
-
 func (c controller) getSigned(w http.ResponseWriter, r *http.Request) {
 	acc, err := c.svc.GetSignedInAccount(r.Context())
 	if err != nil {
@@ -99,49 +87,10 @@ func (c controller) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, claims, err := c.svc.Login(r.Context(), body.Username, body.Password)
+	payload, err := c.svc.Login(r.Context(), body.Username, body.Password)
 	if err != nil {
 		NewHttpError(w, err)
 		return
-	}
-
-	payload := AccountPayload{
-		AccessToken: token,
-		AccountID:   claims.AccountID,
-		UserID:      claims.UserID,
-		OrgID:       claims.OrgID,
-		Username:    claims.Username,
-		Email:       claims.Email,
-		IssuedAt:    claims.RegisteredClaims.IssuedAt.Unix(),
-		ExpiresAt:   claims.RegisteredClaims.ExpiresAt.Unix(),
-	}
-
-	util.WriteJSONResponse(w, http.StatusAccepted, payload)
-}
-
-func (c controller) register(w http.ResponseWriter, r *http.Request) {
-	var body CreateAccountParams
-
-	if err := util.ReadRequestBody(w, r, &body); err != nil {
-		NewHttpError(w, err)
-		return
-	}
-
-	token, claims, err := c.svc.Register(r.Context(), body)
-	if err != nil {
-		NewHttpError(w, err)
-		return
-	}
-
-	payload := AccountPayload{
-		AccessToken: token,
-		AccountID:   claims.AccountID,
-		UserID:      claims.UserID,
-		OrgID:       claims.OrgID,
-		Username:    claims.Username,
-		Email:       claims.Email,
-		IssuedAt:    claims.RegisteredClaims.IssuedAt.Unix(),
-		ExpiresAt:   claims.RegisteredClaims.ExpiresAt.Unix(),
 	}
 
 	util.WriteJSONResponse(w, http.StatusAccepted, payload)
