@@ -41,7 +41,7 @@ func (s svc) Login(ctx context.Context, username string, password string) (*Acco
 	}
 
 	// Access token with 15 minutes expiration
-	accessToken, accessClaims, err := token.Generate(s.secretKey, account.ID, user.ID, user.Username, time.Second*15)
+	accessToken, accessClaims, err := token.Generate(s.secretKey, account.ID, user.ID, user.Username, time.Minute*15)
 	if err != nil {
 		return nil, NewBadRequestError("error on generate access token", err)
 	}
