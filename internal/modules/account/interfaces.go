@@ -2,6 +2,8 @@ package account
 
 import (
 	"context"
+
+	"github.com/bernardinorafael/internal/_shared/dto"
 )
 
 type RepositoryInterface interface {
@@ -13,9 +15,9 @@ type RepositoryInterface interface {
 }
 
 type ServiceInterface interface {
-	Login(ctx context.Context, username, password string) (*AccountPayload, error)
+	Login(ctx context.Context, username, password string) (*dto.AccountResponse, error)
 	Logout(ctx context.Context, username string) error
-	RenewAccessToken(ctx context.Context, refreshToken string) (*RenewAccessTokenPayload, error)
+	RenewAccessToken(ctx context.Context, refreshToken string) (*dto.RenewAccessToken, error)
 	GetSignedInAccount(ctx context.Context) (*EntityWithUser, error)
 	ChangePassword(ctx context.Context, userId string, old string, new string) error
 }

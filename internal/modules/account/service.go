@@ -2,14 +2,21 @@ package account
 
 import (
 	"context"
+	"time"
 
+	"github.com/bernardinorafael/internal/_shared/dto"
 	. "github.com/bernardinorafael/internal/_shared/errors"
 	"github.com/bernardinorafael/internal/infra/http/middleware"
 	"github.com/bernardinorafael/internal/infra/token"
 	"github.com/bernardinorafael/internal/mailer"
 	"github.com/bernardinorafael/internal/modules/account/session"
 	"github.com/bernardinorafael/internal/modules/user"
+	"github.com/bernardinorafael/pkg/crypto"
 	"github.com/bernardinorafael/pkg/logger"
+)
+
+var (
+	errInvalidCredential = NewConflictError("invalid credentials", InvalidCredentials, nil, nil)
 )
 
 type svc struct {
@@ -40,6 +47,174 @@ func NewService(
 		mailer:      mailer,
 		secretKey:   secretKey,
 	}
+}
+
+func (s svc) ChangePassword(ctx context.Context, userId string, oldPassword string, newPassword string) error {
+	user, err := s.userRepo.FindByID(ctx, userId)
+	if err != nil {
+		return NewBadRequestError("error on get user by id", err)
+	}
+	if user == nil {
+		return NewNotFoundError("user not found", nil)
+	}
+
+	account, err := s.repo.FindByUserID(ctx, userId)
+	if err != nil {
+		return NewBadRequestError("error on get account by id", err)
+	}
+	if account == nil {
+		return NewNotFoundError("account not found", nil)
+	}
+
+	newAcc, err := NewFromDatabase(*account)
+	if err != nil {
+		return NewBadRequestError("error on create account entity", nil)
+	}
+
+	if !crypto.PasswordMatches(oldPassword, newAcc.password) {
+		return NewConflictError("passwords does not matches", InvalidCredentials, nil, nil)
+	}
+
+	hashedPassword, err := crypto.HashPassword(newPassword)
+	if err != nil {
+		return NewBadRequestError("failed to encrypt password", nil)
+	}
+
+	err = newAcc.ChangePassword(hashedPassword, user.IgnorePasswordPolicy)
+	if err != nil {
+		return NewBadRequestError("error on change password", err)
+	}
+
+	accountData := newAcc.Store()
+
+	err = s.repo.Update(ctx, accountData)
+	if err != nil {
+		return NewBadRequestError("error on updating account password", err)
+	}
+
+	go func() {
+		params := mailer.SendParams{
+			From:    mailer.NotificationSender,
+			To:      "rafaelferreirab2@gmail.com",
+			Subject: "Sua senha foi alterada",
+			File:    "change_password.html",
+		}
+		if err := s.mailer.Send(params); err != nil {
+			s.log.Errorw(ctx, "error on send email", logger.Err(err))
+		}
+	}()
+
+	return nil
+}
+
+func (s svc) Login(ctx context.Context, username string, password string) (*dto.AccountResponse, error) {
+	account, err := s.repo.FindByUsername(ctx, username)
+	if err != nil {
+		return nil, errInvalidCredential
+	}
+	user := account.User
+	// Check if password is correct
+	if !crypto.PasswordMatches(password, account.Password) {
+		return nil, errInvalidCredential
+	}
+	// Check if account is active
+	if !account.IsActive {
+		return nil, NewBadRequestError("account is not active", nil)
+	}
+
+	sessions, err := s.sessionRepo.FindAllByUsername(ctx, username)
+	if err != nil {
+		return nil, NewBadRequestError("error on retrieve all sessions by username", err)
+	}
+
+	// TODO: When the maximum number of sessions is reached
+	// it should log out of one session and continue the login
+	if len(sessions) == 3 {
+		return nil, NewConflictError("max sessions reached", MaxSessionsReached, nil, nil)
+	}
+
+	// Access token with 15 minutes expiration
+	accessToken, accessClaims, err := token.Generate(s.secretKey, account.ID, user.ID, user.Username, time.Minute*15)
+	if err != nil {
+		return nil, NewBadRequestError("error on generate access token", err)
+	}
+	// Refresh token with 30 days expiration
+	refreshToken, refreshClaims, err := token.Generate(s.secretKey, account.ID, user.ID, user.Username, time.Hour*24*30)
+	if err != nil {
+		return nil, NewBadRequestError("error on generate refresh token", err)
+	}
+
+	// TODO: get agent and ip from context
+	newSession := session.New(user.Username, refreshToken, "agent", "ip")
+	sessionData := newSession.Store()
+
+	err = s.sessionRepo.Insert(ctx, sessionData)
+	if err != nil {
+		return nil, NewBadRequestError("error on insert session", err)
+	}
+
+	payload := dto.AccountResponse{
+		SessionID:           newSession.ID(),
+		AccessToken:         accessToken,
+		RefreshToken:        refreshToken,
+		AccessTokenExpires:  accessClaims.RegisteredClaims.ExpiresAt.Unix(),
+		RefreshTokenExpires: refreshClaims.RegisteredClaims.ExpiresAt.Unix(),
+	}
+
+	return &payload, nil
+}
+
+func (s svc) Logout(ctx context.Context, username string) error {
+	err := s.sessionRepo.DeleteAll(ctx, username)
+	if err != nil {
+		return NewBadRequestError("error on delete all sessions", err)
+	}
+
+	return nil
+}
+
+func (s svc) RenewAccessToken(ctx context.Context, refreshToken string) (*dto.RenewAccessToken, error) {
+	refreshTokenClaims, err := token.Verify(s.secretKey, refreshToken)
+	if err != nil {
+		s.log.Errorw(ctx, "error on verify refresh token", logger.Err(err))
+		return nil, NewBadRequestError("error on verify refresh token", err)
+	}
+
+	acc, err := s.repo.FindByID(ctx, refreshTokenClaims.AccountID)
+	if err != nil {
+		s.log.Errorw(ctx, "error on find account by id", logger.Err(err))
+		return nil, NewBadRequestError("error on find account by id", err)
+	}
+	user := acc.User
+
+	record, err := s.sessionRepo.FindByRefreshToken(ctx, refreshToken)
+	if err != nil {
+		s.log.Errorw(ctx, "error on find session by refresh token", logger.Err(err))
+		return nil, NewBadRequestError("error on find session by refresh token", err)
+	}
+
+	session := session.NewFromDatabase(*record)
+
+	if !session.IsValid() {
+		return nil, NewBadRequestError("session is invalid", nil)
+	}
+
+	if session.Username() != user.Username {
+		return nil, NewBadRequestError("session username does not match account username", nil)
+	}
+
+	accessToken, claims, err := token.Generate(s.secretKey, acc.ID, user.ID, user.Username, time.Minute*15)
+	if err != nil {
+		s.log.Errorw(ctx, "error on generate access token", logger.Err(err))
+		return nil, NewBadRequestError("error on generate access token", err)
+	}
+
+	payload := dto.RenewAccessToken{
+		AccessToken:        accessToken,
+		AccessTokenExpires: claims.ExpiresAt.Unix(),
+	}
+
+	return &payload, nil
 }
 
 func (s svc) GetSignedInAccount(ctx context.Context) (*EntityWithUser, error) {
