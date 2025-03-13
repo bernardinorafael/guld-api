@@ -7,11 +7,6 @@ import (
 	"github.com/bernardinorafael/internal/modules/user"
 )
 
-type PartialEntity struct {
-	ID       string `db:"id"`
-	IsActive *bool  `db:"is_active"`
-}
-
 type Entity struct {
 	ID       string    `json:"id" db:"id"`
 	UserID   string    `json:"user_id" db:"user_id"`
@@ -21,6 +16,7 @@ type Entity struct {
 	Updated  time.Time `json:"updated" db:"updated"`
 }
 
+// TODO: use embbeded struct
 type EntityWithUser struct {
 	ID       string                  `json:"id" db:"id"`
 	Password string                  `json:"password,omitempty" db:"password"`
@@ -32,12 +28,16 @@ type EntityWithUser struct {
 }
 
 type AccountPayload struct {
-	SessionID           string      `json:"session_id"`
-	AccessToken         string      `json:"access_token"`
-	RefreshToken        string      `json:"refresh_token"`
-	AccessTokenExpires  time.Time   `json:"access_token_expires"`
-	RefreshTokenExpires time.Time   `json:"refresh_token_expires"`
-	User                user.Entity `json:"user"`
+	SessionID           string `json:"session_id"`
+	AccessToken         string `json:"access_token"`
+	RefreshToken        string `json:"refresh_token"`
+	AccessTokenExpires  int64  `json:"access_token_expires"`
+	RefreshTokenExpires int64  `json:"refresh_token_expires"`
+}
+
+type RenewAccessTokenPayload struct {
+	AccessToken        string `json:"access_token"`
+	AccessTokenExpires int64  `json:"access_token_expires"`
 }
 
 type CreateAccountParams struct {

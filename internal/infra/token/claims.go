@@ -5,15 +5,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/segmentio/ksuid"
 )
-
-type WithParams struct {
-	AccountID string
-	UserID    string
-	Username  string
-	Duration  time.Duration
-}
 
 type AccountClaims struct {
 	AccountID string `json:"account_id"`
@@ -28,7 +20,7 @@ func NewAccountClaims(accId, userId, username string, duration time.Duration) (*
 		UserID:    userId,
 		Username:  username,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ID:        ksuid.New().String(),
+			Subject:   username,
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(duration)),
 		},
@@ -38,7 +30,7 @@ func NewAccountClaims(accId, userId, username string, duration time.Duration) (*
 }
 
 func (a *AccountClaims) Valid() error {
-	if a.ExpiresAt != nil && !a.ExpiresAt.After(time.Now()) {
+	if time.Now().After(a.ExpiresAt.Time) {
 		return errors.New("token has expired")
 	}
 	return nil

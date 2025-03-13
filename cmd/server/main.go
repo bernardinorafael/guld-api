@@ -12,11 +12,11 @@ import (
 	"github.com/bernardinorafael/internal/infra/http/middleware"
 	"github.com/bernardinorafael/internal/mailer"
 	"github.com/bernardinorafael/internal/modules/account"
+	"github.com/bernardinorafael/internal/modules/account/session"
 	"github.com/bernardinorafael/internal/modules/email"
 	"github.com/bernardinorafael/internal/modules/org"
 	"github.com/bernardinorafael/internal/modules/permission"
 	"github.com/bernardinorafael/internal/modules/role"
-	"github.com/bernardinorafael/internal/modules/session"
 	"github.com/bernardinorafael/internal/modules/team"
 	"github.com/bernardinorafael/internal/modules/user"
 	userrepo "github.com/bernardinorafael/internal/modules/user/repository"
@@ -77,7 +77,6 @@ func main() {
 
 	// Services
 	emailService := email.NewService(log, emailRepo, mailer)
-	_ = session.NewService(log, sessionRepo)
 	permissionService := permission.NewService(log, permissionRepo)
 	accService := account.NewService(ctx, log, accRepo, userRepo, sessionRepo, mailer, env.JWTSecret)
 	roleService := role.NewService(log, roleRepo)
@@ -93,7 +92,6 @@ func main() {
 	account.NewController(ctx, log, accService, env.JWTSecret).RegisterRoute(r)
 	org.NewController(ctx, log, orgService, env.JWTSecret).RegisterRoute(r)
 	permission.NewController(ctx, log, permissionService, env.JWTSecret).RegisterRoute(r)
-	session.NewController(ctx, log, env.JWTSecret).RegisterRoute(r)
 
 	log.Info(ctx, "Server started")
 	err = http.ListenAndServe(":"+env.Port, r)

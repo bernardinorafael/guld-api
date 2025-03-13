@@ -7,6 +7,7 @@ import (
 	. "github.com/bernardinorafael/internal/_shared/errors"
 	"github.com/bernardinorafael/internal/_shared/util"
 	"github.com/bernardinorafael/internal/infra/http/middleware"
+	"github.com/bernardinorafael/internal/infra/token"
 	"github.com/bernardinorafael/pkg/logger"
 	"github.com/go-chi/chi"
 )
@@ -17,6 +18,8 @@ type controller struct {
 	svc       ServiceInterface
 	secretKey string
 }
+
+const basePath = "/api/v1"
 
 func NewController(
 	ctx context.Context,
@@ -30,20 +33,58 @@ func NewController(
 func (c controller) RegisterRoute(r *chi.Mux) {
 	m := middleware.NewWithAuth(c.log, c.secretKey)
 
-	r.Route("/api/v1/auth", func(r chi.Router) {
+	r.Route(basePath+"/auth", func(r chi.Router) {
 		r.Post("/login", c.login)
-		r.Post("/{userId}/change-password", c.changePassword)
+		r.Post("/refresh", c.renewRefreshToken)
+
+		r.With(m.WithAuth).Delete("/logout", c.logOut)
+
+		// register
+		// activate account
+		// forgot password
+		// reset password
 	})
 
-	r.Route("/api/v1/accounts/me", func(r chi.Router) {
+	r.Route(basePath+"/accounts", func(r chi.Router) {
 		r.Use(m.WithAuth)
-		r.Get("/", c.getSigned)
+		r.Get("/me", c.getSigned)
+		r.Post("/{userId}/change-password", c.changePassword)
 	})
+}
+
+func (c controller) renewRefreshToken(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		RefreshToken string `json:"refresh_token"`
+	}
+
+	err := util.ReadRequestBody(w, r, &body)
+	if err != nil {
+		NewHttpError(w, err)
+		return
+	}
+
+	payload, err := c.svc.RenewAccessToken(c.ctx, body.RefreshToken)
+	if err != nil {
+		NewHttpError(w, err)
+		return
+	}
+
+	util.WriteJSONResponse(w, http.StatusOK, payload)
+}
+
+func (c controller) logOut(w http.ResponseWriter, r *http.Request) {
+	claims := r.Context().Value(middleware.AuthKey{}).(*token.AccountClaims)
+
+	if err := c.svc.Logout(c.ctx, claims.Username); err != nil {
+		NewHttpError(w, err)
+		return
+	}
+
+	util.WriteSuccessResponse(w, http.StatusOK)
 }
 
 func (c controller) changePassword(w http.ResponseWriter, r *http.Request) {
 	var userId = chi.URLParam(r, "userId")
-
 	var body struct {
 		Password    string `json:"password"`
 		NewPassword string `json:"new_password"`
@@ -93,5 +134,5 @@ func (c controller) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	util.WriteJSONResponse(w, http.StatusAccepted, payload)
+	util.WriteJSONResponse(w, http.StatusOK, payload)
 }

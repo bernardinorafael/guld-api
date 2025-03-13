@@ -51,7 +51,7 @@ func (s *session) Revoke() {
 	s.updated = time.Now()
 }
 
-func (s *session) IsValidSession() bool {
+func (s *session) IsValid() bool {
 	return !s.revoked && s.expires.After(time.Now())
 }
 

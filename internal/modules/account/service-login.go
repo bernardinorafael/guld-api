@@ -6,7 +6,7 @@ import (
 
 	. "github.com/bernardinorafael/internal/_shared/errors"
 	"github.com/bernardinorafael/internal/infra/token"
-	"github.com/bernardinorafael/internal/modules/session"
+	"github.com/bernardinorafael/internal/modules/account/session"
 	"github.com/bernardinorafael/pkg/crypto"
 )
 
@@ -15,27 +15,38 @@ var (
 )
 
 func (s svc) Login(ctx context.Context, username string, password string) (*AccountPayload, error) {
-	acc, err := s.repo.FindByUsername(ctx, username)
+	account, err := s.repo.FindByUsername(ctx, username)
 	if err != nil {
 		return nil, errInvalidCredential
 	}
-	if !crypto.PasswordMatches(password, acc.Password) {
+	user := account.User
+	// Check if password is correct
+	if !crypto.PasswordMatches(password, account.Password) {
 		return nil, errInvalidCredential
 	}
-	user := acc.User
-
-	if !acc.IsActive {
+	// Check if account is active
+	if !account.IsActive {
 		return nil, NewBadRequestError("account is not active", nil)
 	}
 
+	sessions, err := s.sessionRepo.FindAllByUsername(ctx, username)
+	if err != nil {
+		return nil, NewBadRequestError("error on retrieve all sessions by username", err)
+	}
+
+	// TODO: When the maximum number of sessions is reached
+	// it should log out of one session and continue the login
+	if len(sessions) == 3 {
+		return nil, NewConflictError("max sessions reached", MaxSessionsReached, nil, nil)
+	}
+
 	// Access token with 15 minutes expiration
-	accessToken, accessClaims, err := token.Generate(s.secretKey, acc.ID, user.ID, user.Username, time.Minute*15)
+	accessToken, accessClaims, err := token.Generate(s.secretKey, account.ID, user.ID, user.Username, time.Second*15)
 	if err != nil {
 		return nil, NewBadRequestError("error on generate access token", err)
 	}
-
 	// Refresh token with 30 days expiration
-	refreshToken, refreshClaims, err := token.Generate(s.secretKey, acc.ID, user.ID, user.Username, time.Hour*24*30)
+	refreshToken, refreshClaims, err := token.Generate(s.secretKey, account.ID, user.ID, user.Username, time.Hour*24*30)
 	if err != nil {
 		return nil, NewBadRequestError("error on generate refresh token", err)
 	}
@@ -53,9 +64,8 @@ func (s svc) Login(ctx context.Context, username string, password string) (*Acco
 		SessionID:           newSession.ID(),
 		AccessToken:         accessToken,
 		RefreshToken:        refreshToken,
-		AccessTokenExpires:  accessClaims.RegisteredClaims.ExpiresAt.Time,
-		RefreshTokenExpires: refreshClaims.RegisteredClaims.ExpiresAt.Time,
-		User:                user,
+		AccessTokenExpires:  accessClaims.RegisteredClaims.ExpiresAt.Unix(),
+		RefreshTokenExpires: refreshClaims.RegisteredClaims.ExpiresAt.Unix(),
 	}
 
 	return &payload, nil

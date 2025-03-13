@@ -8,6 +8,7 @@ import (
 	"github.com/bernardinorafael/internal/_shared/dto"
 	. "github.com/bernardinorafael/internal/_shared/errors"
 	"github.com/bernardinorafael/internal/infra/http/middleware"
+	"github.com/bernardinorafael/internal/infra/token"
 	"github.com/bernardinorafael/internal/modules/user"
 	"github.com/bernardinorafael/pkg/logger"
 	"github.com/bernardinorafael/pkg/pagination"
@@ -40,16 +41,16 @@ func (s svc) GetAll(
 		return nil, NewBadRequestError("failed to retrieve users", err)
 	}
 
-	userInCtx, ok := ctx.Value(middleware.UserIDKey).(string)
+	claims, ok := ctx.Value(middleware.AuthKey{}).(*token.AccountClaims)
 	if !ok {
-		return nil, NewBadRequestError("failed to retrieve user id", err)
+		return nil, NewBadRequestError("userId not found in context", err)
 	}
 
 	// Filter out the user in context
 	// TODO: Move this to repository
 	users := make([]user.EntityWithTeam, 0)
 	for _, u := range rawUsers {
-		if u.ID != userInCtx {
+		if u.ID != claims.UserID {
 			users = append(users, u)
 		}
 	}

@@ -13,8 +13,7 @@ func Verify(secretKey string, v string) (*AccountClaims, error) {
 	}
 
 	keyFunc := func(token *jwt.Token) (any, error) {
-		_, ok := token.Method.(*jwt.SigningMethodHMAC)
-		if !ok {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("invalid token signing method")
 		}
 		return []byte(secretKey), nil

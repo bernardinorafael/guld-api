@@ -31,6 +31,7 @@ const (
 	MaxLimitResourceReached ErrorCode = "MAX_LIMIT_RESOURCE_REACHED"
 	EmailNotVerified        ErrorCode = "EMAIL_NOT_VERIFIED"
 	PhoneNotVerified        ErrorCode = "PHONE_NOT_VERIFIED"
+	MaxSessionsReached      ErrorCode = "MAX_SESSIONS_REACHED"
 	Expired                 ErrorCode = "EXPIRED"
 )
 

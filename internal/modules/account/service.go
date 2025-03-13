@@ -5,8 +5,9 @@ import (
 
 	. "github.com/bernardinorafael/internal/_shared/errors"
 	"github.com/bernardinorafael/internal/infra/http/middleware"
+	"github.com/bernardinorafael/internal/infra/token"
 	"github.com/bernardinorafael/internal/mailer"
-	"github.com/bernardinorafael/internal/modules/session"
+	"github.com/bernardinorafael/internal/modules/account/session"
 	"github.com/bernardinorafael/internal/modules/user"
 	"github.com/bernardinorafael/pkg/logger"
 )
@@ -42,12 +43,12 @@ func NewService(
 }
 
 func (s svc) GetSignedInAccount(ctx context.Context) (*EntityWithUser, error) {
-	accId, ok := ctx.Value(middleware.AccIDKey).(string)
+	claims, ok := ctx.Value(middleware.AuthKey{}).(*token.AccountClaims)
 	if !ok {
 		return nil, NewBadRequestError("user ID not found in context", nil)
 	}
 
-	acc, err := s.repo.FindByID(ctx, accId)
+	acc, err := s.repo.FindByID(ctx, claims.AccountID)
 	if err != nil {
 		return nil, NewBadRequestError("error on get account by id", err)
 	}

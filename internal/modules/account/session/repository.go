@@ -2,6 +2,8 @@ package session
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -16,7 +18,7 @@ func NewRepo(db *sqlx.DB) RepositoryInterface {
 	return &repo{db: db}
 }
 
-func (r repo) FindByID(ctx context.Context, username, sessionId string) (*Entity, error) {
+func (r repo) FindByRefreshToken(ctx context.Context, refreshToken string) (*Entity, error) {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
@@ -24,9 +26,29 @@ func (r repo) FindByID(ctx context.Context, username, sessionId string) (*Entity
 	err := r.db.GetContext(
 		ctx,
 		&session,
-		"SELECT * FROM sessions WHERE id = $1 AND username = $2",
+		"SELECT * FROM sessions WHERE refresh_token = $1",
+		refreshToken,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("error on find session by refresh token: %w", err)
+	}
+
+	return &session, nil
+}
+
+func (r repo) FindByID(ctx context.Context, sessionId string) (*Entity, error) {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	var session Entity
+	err := r.db.GetContext(
+		ctx,
+		&session,
+		"SELECT * FROM sessions WHERE id = $1",
 		sessionId,
-		username,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("error on find session by id: %w", err)
@@ -80,6 +102,18 @@ func (r repo) Delete(ctx context.Context, sessionId string) error {
 	_, err := r.db.ExecContext(ctx, "DELETE FROM sessions where id = $1", sessionId)
 	if err != nil {
 		return fmt.Errorf("error on delete session: %w", err)
+	}
+
+	return nil
+}
+
+func (r repo) DeleteAll(ctx context.Context, username string) error {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	_, err := r.db.ExecContext(ctx, "DELETE FROM sessions WHERE username = $1", username)
+	if err != nil {
+		return fmt.Errorf("error on delete all sessions: %w", err)
 	}
 
 	return nil
