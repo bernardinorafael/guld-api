@@ -51,6 +51,47 @@ func NewService(
 	}
 }
 
+func (s svc) GetSession(ctx context.Context) (*dto.SessionResponse, error) {
+	claims, ok := ctx.Value(middleware.AuthKey{}).(*token.AccountClaims)
+	if !ok {
+		return nil, NewBadRequestError("user ID not found in context", nil)
+	}
+
+	records, err := s.sessionRepo.FindAllByUsername(ctx, claims.Username)
+	if err != nil {
+		return nil, NewBadRequestError("error retrieving sessions by username", err)
+	}
+
+	if len(records) == 0 {
+		s.log.Info(ctx, "no sessions found for user")
+		return nil, nil
+	}
+
+	var session *session.Entity
+	for _, record := range records {
+		if !record.Revoked {
+			session = &record
+			break
+		}
+	}
+
+	if session == nil {
+		s.log.Info(ctx, "no active session found")
+		return nil, nil
+	}
+
+	res := &dto.SessionResponse{
+		ID:      session.ID,
+		Agent:   session.Agent,
+		IP:      session.IP,
+		Revoked: session.Revoked,
+		Expired: time.Now().After(session.Expires),
+		Created: session.Created,
+	}
+
+	return res, nil
+}
+
 func (s svc) RevokeSession(ctx context.Context, username, sessionId string) error {
 	record, err := s.sessionRepo.FindByID(ctx, sessionId)
 	if err != nil {
@@ -79,15 +120,15 @@ func (s svc) GetAllSessions(ctx context.Context, username string) ([]*dto.Sessio
 	}
 
 	sessions := make([]*dto.SessionResponse, 0, len(records))
+
 	for _, s := range records {
 		sessions = append(sessions, &dto.SessionResponse{
-			ID:               s.ID,
-			Agent:            s.Agent,
-			IP:               s.IP,
-			Revoked:          s.Revoked,
-			IsCurrentSession: false,
-			Expired:          time.Now().After(s.Expires),
-			Created:          s.Created,
+			ID:      s.ID,
+			Agent:   s.Agent,
+			IP:      s.IP,
+			Revoked: s.Revoked,
+			Expired: time.Now().After(s.Expires),
+			Created: s.Created,
 		})
 	}
 
@@ -211,11 +252,33 @@ func (s svc) Login(ctx context.Context, username, password, userAgent, ip string
 	return &payload, nil
 }
 
-func (s svc) Logout(ctx context.Context, username string) error {
-	// err := s.sessionRepo.DeleteAll(ctx, username)
-	// if err != nil {
-	// 	return NewBadRequestError("error on delete all sessions", err)
-	// }
+func (s svc) Logout(ctx context.Context) error {
+	claims, ok := ctx.Value(middleware.AuthKey{}).(*token.AccountClaims)
+	if !ok {
+		return NewBadRequestError("user ID not found in context", nil)
+	}
+
+	sessions, err := s.sessionRepo.FindAllByUsername(ctx, claims.Username)
+	if err != nil {
+		return NewBadRequestError("error on find all sessions by username", err)
+	}
+
+	var sess *session.Entity
+	for _, v := range sessions {
+		if !v.Revoked {
+			sess = &v
+			break
+		}
+	}
+	if sess == nil {
+		s.log.Info(ctx, "no revoked session found")
+		return nil
+	}
+
+	err = s.RevokeSession(ctx, claims.Username, sess.ID)
+	if err != nil {
+		return NewBadRequestError("error on revoke session", err)
+	}
 
 	return nil
 }

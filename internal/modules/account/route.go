@@ -55,7 +55,9 @@ func (c controller) RegisterRoute(r *chi.Mux) {
 
 	r.Route(basePath+"/sessions", func(r chi.Router) {
 		r.Use(m.WithAuth)
+
 		r.Get("/", c.getAllSessions)
+		r.Get("/active", c.getSession)
 		r.Patch("/{sessionId}/revoke", c.revokeSession)
 	})
 }
@@ -106,20 +108,10 @@ func (c controller) renewRefreshToken(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c controller) logOut(w http.ResponseWriter, r *http.Request) {
-	claims := r.Context().Value(middleware.AuthKey{}).(*token.AccountClaims)
-
-	if err := c.svc.Logout(c.ctx, claims.Username); err != nil {
+	if err := c.svc.Logout(r.Context()); err != nil {
 		NewHttpError(w, err)
 		return
 	}
-
-	// Delete the session cookie
-	http.SetCookie(w, &http.Cookie{
-		Name:   "gulg_session_id",
-		Value:  "",
-		Path:   "/",
-		MaxAge: -1,
-	})
 
 	util.WriteSuccessResponse(w, http.StatusOK)
 }
@@ -181,13 +173,15 @@ func (c controller) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Set the session cookie
-	http.SetCookie(w, &http.Cookie{
-		Name:     "gulg_session_id",
-		Value:    payload.SessionID,
-		SameSite: http.SameSiteNoneMode,
-		Path:     "/",
-	})
-
 	util.WriteJSONResponse(w, http.StatusOK, payload)
+}
+
+func (c controller) getSession(w http.ResponseWriter, r *http.Request) {
+	session, err := c.svc.GetSession(r.Context())
+	if err != nil {
+		NewHttpError(w, err)
+		return
+	}
+
+	util.WriteJSONResponse(w, http.StatusOK, session)
 }
