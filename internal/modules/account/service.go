@@ -2,6 +2,7 @@ package account
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/bernardinorafael/internal/_shared/dto"
@@ -13,6 +14,7 @@ import (
 	"github.com/bernardinorafael/internal/modules/user"
 	"github.com/bernardinorafael/pkg/crypto"
 	"github.com/bernardinorafael/pkg/logger"
+	"github.com/medama-io/go-useragent"
 )
 
 var (
@@ -47,6 +49,49 @@ func NewService(
 		mailer:      mailer,
 		secretKey:   secretKey,
 	}
+}
+
+func (s svc) RevokeSession(ctx context.Context, username, sessionId string) error {
+	record, err := s.sessionRepo.FindByID(ctx, sessionId)
+	if err != nil {
+		return NewBadRequestError("error on get session by id", err)
+	}
+	if record == nil {
+		return NewNotFoundError("session not found", nil)
+	}
+
+	session := session.NewFromDatabase(*record)
+	session.Revoke()
+	sessionData := session.Store()
+
+	err = s.sessionRepo.Update(ctx, sessionData)
+	if err != nil {
+		return NewBadRequestError("error on update session", err)
+	}
+
+	return nil
+}
+
+func (s svc) GetAllSessions(ctx context.Context, username string) ([]*dto.SessionResponse, error) {
+	records, err := s.sessionRepo.FindAllByUsername(ctx, username)
+	if err != nil {
+		return nil, NewBadRequestError("error on get all sessions by username", err)
+	}
+
+	sessions := make([]*dto.SessionResponse, 0, len(records))
+	for _, s := range records {
+		sessions = append(sessions, &dto.SessionResponse{
+			ID:               s.ID,
+			Agent:            s.Agent,
+			IP:               s.IP,
+			Revoked:          s.Revoked,
+			IsCurrentSession: false,
+			Expired:          time.Now().After(s.Expires),
+			Created:          s.Created,
+		})
+	}
+
+	return sessions, nil
 }
 
 func (s svc) ChangePassword(ctx context.Context, userId string, oldPassword string, newPassword string) error {
@@ -107,7 +152,7 @@ func (s svc) ChangePassword(ctx context.Context, userId string, oldPassword stri
 	return nil
 }
 
-func (s svc) Login(ctx context.Context, username string, password string) (*dto.AccountResponse, error) {
+func (s svc) Login(ctx context.Context, username, password, userAgent, ip string) (*dto.AccountResponse, error) {
 	account, err := s.repo.FindByUsername(ctx, username)
 	if err != nil {
 		return nil, errInvalidCredential
@@ -122,16 +167,16 @@ func (s svc) Login(ctx context.Context, username string, password string) (*dto.
 		return nil, NewBadRequestError("account is not active", nil)
 	}
 
-	sessions, err := s.sessionRepo.FindAllByUsername(ctx, username)
-	if err != nil {
-		return nil, NewBadRequestError("error on retrieve all sessions by username", err)
-	}
+	// sessions, err := s.sessionRepo.FindAllByUsername(ctx, username)
+	// if err != nil {
+	// 	return nil, NewBadRequestError("error on retrieve all sessions by username", err)
+	// }
 
 	// TODO: When the maximum number of sessions is reached
 	// it should log out of one session and continue the login
-	if len(sessions) == 3 {
-		return nil, NewConflictError("max sessions reached", MaxSessionsReached, nil, nil)
-	}
+	// if len(sessions) == 3 {
+	// 	return nil, NewConflictError("max sessions reached", MaxSessionsReached, nil, nil)
+	// }
 
 	// Access token with 15 minutes expiration
 	accessToken, accessClaims, err := token.Generate(s.secretKey, account.ID, user.ID, user.Username, time.Minute*15)
@@ -144,8 +189,10 @@ func (s svc) Login(ctx context.Context, username string, password string) (*dto.
 		return nil, NewBadRequestError("error on generate refresh token", err)
 	}
 
-	// TODO: get agent and ip from context
-	newSession := session.New(user.Username, refreshToken, "agent", "ip")
+	agent := useragent.NewParser().Parse(userAgent)
+	userAgent = fmt.Sprintf("%s em %s", agent.GetBrowser(), agent.GetOS())
+
+	newSession := session.New(user.Username, refreshToken, userAgent, ip)
 	sessionData := newSession.Store()
 
 	err = s.sessionRepo.Insert(ctx, sessionData)
@@ -165,10 +212,10 @@ func (s svc) Login(ctx context.Context, username string, password string) (*dto.
 }
 
 func (s svc) Logout(ctx context.Context, username string) error {
-	err := s.sessionRepo.DeleteAll(ctx, username)
-	if err != nil {
-		return NewBadRequestError("error on delete all sessions", err)
-	}
+	// err := s.sessionRepo.DeleteAll(ctx, username)
+	// if err != nil {
+	// 	return NewBadRequestError("error on delete all sessions", err)
+	// }
 
 	return nil
 }
@@ -176,20 +223,17 @@ func (s svc) Logout(ctx context.Context, username string) error {
 func (s svc) RenewAccessToken(ctx context.Context, refreshToken string) (*dto.RenewAccessToken, error) {
 	refreshTokenClaims, err := token.Verify(s.secretKey, refreshToken)
 	if err != nil {
-		s.log.Errorw(ctx, "error on verify refresh token", logger.Err(err))
 		return nil, NewBadRequestError("error on verify refresh token", err)
 	}
 
 	acc, err := s.repo.FindByID(ctx, refreshTokenClaims.AccountID)
 	if err != nil {
-		s.log.Errorw(ctx, "error on find account by id", logger.Err(err))
 		return nil, NewBadRequestError("error on find account by id", err)
 	}
 	user := acc.User
 
 	record, err := s.sessionRepo.FindByRefreshToken(ctx, refreshToken)
 	if err != nil {
-		s.log.Errorw(ctx, "error on find session by refresh token", logger.Err(err))
 		return nil, NewBadRequestError("error on find session by refresh token", err)
 	}
 

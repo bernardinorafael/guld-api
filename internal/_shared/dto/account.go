@@ -1,5 +1,7 @@
 package dto
 
+import "time"
+
 type AccountResponse struct {
 	SessionID           string `json:"session_id"`
 	AccessToken         string `json:"access_token"`
@@ -19,4 +21,14 @@ type CreateAccount struct {
 	PhoneNumber  string `json:"phone_number"`
 	EmailAddress string `json:"email_address"`
 	Password     string `json:"password,omitempty"`
+}
+
+type SessionResponse struct {
+	ID               string    `json:"id"`
+	Agent            string    `json:"agent"`
+	IP               string    `json:"ip"`
+	Revoked          bool      `json:"revoked"`
+	Expired          bool      `json:"expired"`
+	IsCurrentSession bool      `json:"is_current_session"`
+	Created          time.Time `json:"created"`
 }

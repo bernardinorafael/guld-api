@@ -150,7 +150,12 @@ func (r repo) FindAllByUsername(ctx context.Context, username string) ([]Entity,
 	defer cancel()
 
 	var sessions = []Entity{}
-	err := r.db.SelectContext(ctx, &sessions, "SELECT * FROM sessions WHERE username = $1", username)
+	err := r.db.SelectContext(
+		ctx,
+		&sessions,
+		"SELECT * FROM sessions WHERE username = $1 ORDER BY created DESC LIMIT 8",
+		username,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("error on find sessions by username: %w", err)
 	}

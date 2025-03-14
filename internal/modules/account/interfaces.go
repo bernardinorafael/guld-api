@@ -15,9 +15,11 @@ type RepositoryInterface interface {
 }
 
 type ServiceInterface interface {
-	Login(ctx context.Context, username, password string) (*dto.AccountResponse, error)
+	Login(ctx context.Context, username, password, userAgent, ip string) (*dto.AccountResponse, error)
 	Logout(ctx context.Context, username string) error
 	RenewAccessToken(ctx context.Context, refreshToken string) (*dto.RenewAccessToken, error)
 	GetSignedInAccount(ctx context.Context) (*EntityWithUser, error)
 	ChangePassword(ctx context.Context, userId string, old string, new string) error
+	GetAllSessions(ctx context.Context, username string) ([]*dto.SessionResponse, error)
+	RevokeSession(ctx context.Context, username, sessionId string) error
 }

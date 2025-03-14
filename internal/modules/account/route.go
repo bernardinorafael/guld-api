@@ -34,9 +34,11 @@ func (c controller) RegisterRoute(r *chi.Mux) {
 	m := middleware.NewWithAuth(c.log, c.secretKey)
 
 	r.Route(basePath+"/auth", func(r chi.Router) {
+		// Public
 		r.Post("/login", c.login)
 		r.Post("/refresh", c.renewRefreshToken)
 
+		// Private
 		r.With(m.WithAuth).Delete("/logout", c.logOut)
 
 		// register
@@ -50,6 +52,37 @@ func (c controller) RegisterRoute(r *chi.Mux) {
 		r.Get("/me", c.getSigned)
 		r.Post("/{userId}/change-password", c.changePassword)
 	})
+
+	r.Route(basePath+"/sessions", func(r chi.Router) {
+		r.Use(m.WithAuth)
+		r.Get("/", c.getAllSessions)
+		r.Patch("/{sessionId}/revoke", c.revokeSession)
+	})
+}
+
+func (c controller) revokeSession(w http.ResponseWriter, r *http.Request) {
+	var sessionId = chi.URLParam(r, "sessionId")
+	claims := r.Context().Value(middleware.AuthKey{}).(*token.AccountClaims)
+
+	err := c.svc.RevokeSession(c.ctx, claims.Username, sessionId)
+	if err != nil {
+		NewHttpError(w, err)
+		return
+	}
+
+	util.WriteSuccessResponse(w, http.StatusOK)
+}
+
+func (c controller) getAllSessions(w http.ResponseWriter, r *http.Request) {
+	claims := r.Context().Value(middleware.AuthKey{}).(*token.AccountClaims)
+
+	sessions, err := c.svc.GetAllSessions(c.ctx, claims.Username)
+	if err != nil {
+		NewHttpError(w, err)
+		return
+	}
+
+	util.WriteJSONResponse(w, http.StatusOK, sessions)
 }
 
 func (c controller) renewRefreshToken(w http.ResponseWriter, r *http.Request) {
@@ -79,6 +112,14 @@ func (c controller) logOut(w http.ResponseWriter, r *http.Request) {
 		NewHttpError(w, err)
 		return
 	}
+
+	// Delete the session cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:   "gulg_session_id",
+		Value:  "",
+		Path:   "/",
+		MaxAge: -1,
+	})
 
 	util.WriteSuccessResponse(w, http.StatusOK)
 }
@@ -128,11 +169,25 @@ func (c controller) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	payload, err := c.svc.Login(r.Context(), body.Username, body.Password)
+	payload, err := c.svc.Login(
+		r.Context(),
+		body.Username,
+		body.Password,
+		r.UserAgent(),
+		r.RemoteAddr,
+	)
 	if err != nil {
 		NewHttpError(w, err)
 		return
 	}
+
+	// Set the session cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     "gulg_session_id",
+		Value:    payload.SessionID,
+		SameSite: http.SameSiteNoneMode,
+		Path:     "/",
+	})
 
 	util.WriteJSONResponse(w, http.StatusOK, payload)
 }
