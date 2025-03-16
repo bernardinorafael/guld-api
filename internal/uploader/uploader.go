@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	S3_KEY    = "AKIAUFWHTEM6NQII3E6L"
-	S3_SECRET = "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"
+	S3_KEY    = ""
+	S3_SECRET = ""
 
 	S3_REGION = "us-east-2"
 	S3_BUCKET = "gulg-profile-picture"
